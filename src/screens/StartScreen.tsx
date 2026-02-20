@@ -102,7 +102,7 @@ export const StartScreen: React.FC = () => {
       {/* ── 타이틀 영역 ── */}
       <div className="title-area">
         <div className="game-title">
-          <span className="underline-hand">폐급 신입</span>
+          <span className="underline-hand">황새 신입</span>
           <br />
           출근 대작전
         </div>
