@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=390, initial-scale=1.0" />
+  <title>오피스 신입 새 - 게임 오버</title>
+  <style>
+    :root {
+      --bg:     #FFFFFF;
+      --line:   #222222;
+      --ground: #888888;
+      --danger: #FF4444;
+      --gold:   #FFD700;
+      --text:   #333333;
+      --coffee: #8B5E3C;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #CCCCCC;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Comic Sans MS', 'Comic Sans', 'Chalkboard SE', cursive;
+    }
+
+    .phone-frame {
+      width: 390px;
+      height: 844px;
+      background: #FFFFFF;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      border: 3px solid var(--line);
+      box-shadow: 6px 6px 0 #000;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── 씬 상단 (쓰러진 장면) ── */
+    .scene-top {
+      height: 300px;
+      flex-shrink: 0;
+      position: relative;
+      background: #FFFFFF;
+      overflow: hidden;
+      border-bottom: 3px solid var(--line);
+      animation: sceneShake 0.4s ease-out;
+    }
+
+    @keyframes sceneShake {
+      0%   { transform: translateX(0); }
+      15%  { transform: translateX(-7px); }
+      30%  { transform: translateX(7px); }
+      50%  { transform: translateX(-4px); }
+      70%  { transform: translateX(4px); }
+      85%  { transform: translateX(-2px); }
+      100% { transform: translateX(0); }
+    }
+
+    /* 배경 빌딩 라인 */
+    .scene-buildings {
+      position: absolute;
+      bottom: 32px;
+      left: 0;
+      right: 0;
+    }
+
+    /* 지면 */
+    .scene-ground {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 32px;
+      background: var(--ground);
+      border-top: 3px solid var(--line);
+    }
+
+    /* 커피 엎질러진 라인 표현 */
+    .coffee-spill {
+      position: absolute;
+      bottom: 28px;
+      left: 80px;
+      animation: spillAppear 0.3s ease-out 0.15s both;
+    }
+
+    @keyframes spillAppear {
+      0%   { transform: scale(0); opacity: 0; }
+      70%  { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* 쓰러진 캐릭터 */
+    .fallen-char {
+      position: absolute;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: fallOver 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.08s both;
+    }
+
+    @keyframes fallOver {
+      0%   { transform: translateX(-50%) rotate(0deg) translateY(-30px); opacity: 0; }
+      40%  { transform: translateX(-50%) rotate(80deg) translateY(0); opacity: 1; }
+      70%  { transform: translateX(-50%) rotate(95deg) translateY(0); }
+      85%  { transform: translateX(-50%) rotate(87deg) translateY(0); }
+      100% { transform: translateX(-50%) rotate(90deg) translateY(0); }
+    }
+
+    /* "아이고!" 텍스트 */
+    .aigo-text {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 36px;
+      font-weight: bold;
+      color: var(--line);
+      white-space: nowrap;
+      animation: aigoAppear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both;
+      text-shadow: 3px 3px 0 rgba(0,0,0,0.15);
+      /* 손글씨 기울기 */
+      transform: translateX(-50%) rotate(-5deg);
+    }
+
+    @keyframes aigoAppear {
+      0%   { transform: translateX(-50%) rotate(-5deg) scale(0.3); opacity: 0; }
+      100% { transform: translateX(-50%) rotate(-5deg) scale(1); opacity: 1; }
+    }
+
+    /* 어지러움 표시 (별/나선) */
+    .dizzy-wrap {
+      position: absolute;
+      top: 80px;
+      left: 48%;
+      animation: dizzySpin 1.2s linear infinite;
+    }
+
+    @keyframes dizzySpin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ── 하단 콘텐츠 ── */
+    .bottom-area {
+      flex: 1;
+      background: #FFFFFF;
+      padding: 20px 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .bottom-area::-webkit-scrollbar { display: none; }
+
+    /* 게임오버 타이틀 */
+    .gameover-title {
+      text-align: center;
+    }
+
+    .gameover-headline {
+      font-size: 22px;
+      font-weight: bold;
+      color: var(--line);
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+
+    .gameover-sub {
+      font-size: 12px;
+      color: #777;
+    }
+
+    /* 결과 박스 */
+    .result-box {
+      border: 2px solid var(--line);
+      display: flex;
+      background: #FAFAFA;
+    }
+
+    .result-item {
+      flex: 1;
+      padding: 16px 12px;
+      text-align: center;
+      position: relative;
+    }
+
+    .result-item:not(:last-child) {
+      border-right: 2px solid var(--line);
+    }
+
+    .result-label {
+      font-size: 11px;
+      font-weight: bold;
+      color: #777;
+      display: block;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .result-value {
+      font-size: 38px;
+      font-weight: bold;
+      color: var(--line);
+      letter-spacing: -2px;
+      line-height: 1;
+      display: block;
+      animation: countUp 0.5s ease-out;
+    }
+
+    @keyframes countUp {
+      0%   { transform: translateY(8px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    .result-unit {
+      font-size: 14px;
+      font-weight: bold;
+      color: #555;
+    }
+
+    /* 신기록 뱃지 */
+    .new-record {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: bold;
+      color: var(--line);
+      border: 2px solid var(--gold);
+      background: #FFFACD;
+      padding: 2px 8px;
+      margin-top: 4px;
+    }
+
+    /* 비교 메시지 */
+    .compare-box {
+      border-left: 4px solid var(--line);
+      padding: 10px 14px;
+      background: #F8F8F8;
+    }
+
+    .compare-text {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.6;
+      font-weight: bold;
+    }
+
+    .compare-text .highlight {
+      color: var(--danger);
+    }
+
+    /* 버튼들 */
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-retry {
+      width: 100%;
+      height: 60px;
+      background: var(--line);
+      color: white;
+      font-family: 'Comic Sans MS', 'Comic Sans', cursive;
+      font-size: 20px;
+      font-weight: bold;
+      border: 3px solid var(--line);
+      cursor: pointer;
+      box-shadow: 4px 4px 0 #555;
+      transition: box-shadow 0.1s, transform 0.1s;
+    }
+
+    .btn-retry:hover {
+      box-shadow: 2px 2px 0 #555;
+      transform: translate(2px, 2px);
+    }
+
+    .btn-retry:active {
+      box-shadow: 0 0 0 #555;
+      transform: translate(4px, 4px);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      height: 48px;
+      background: white;
+      color: var(--line);
+      font-family: 'Comic Sans MS', 'Comic Sans', cursive;
+      font-size: 14px;
+      font-weight: bold;
+      border: 2px solid var(--line);
+      cursor: pointer;
+      box-shadow: 3px 3px 0 var(--line);
+      transition: box-shadow 0.1s, transform 0.1s;
+    }
+
+    .btn-secondary:hover {
+      box-shadow: 1px 1px 0 var(--line);
+      transform: translate(2px, 2px);
+    }
+
+    .btn-secondary:active {
+      box-shadow: 0 0 0 var(--line);
+      transform: translate(3px, 3px);
+    }
+  </style>
+</head>
+<body>
+
+<div class="phone-frame">
+
+  <!-- 씬 상단 -->
+  <div class="scene-top">
+
+    <!-- 배경 빌딩 (단순 라인) -->
+    <div class="scene-buildings">
+      <svg width="390" height="200" viewBox="0 0 390 200" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0"   y="60" width="40" height="140" fill="white" stroke="#ddd" stroke-width="1.5"/>
+        <rect x="45"  y="20" width="55" height="180" fill="white" stroke="#ddd" stroke-width="1.5"/>
+        <rect x="105" y="45" width="42" height="155" fill="white" stroke="#ddd" stroke-width="1.5"/>
+        <rect x="152" y="10" width="60" height="190" fill="white" stroke="#ddd" stroke-width="1.5"/>
+        <rect x="217" y="35" width="45" height="165" fill="white" stroke="#ddd" stroke-width="1.5"/>
+        <rect x="267" y="25" width="55" height="175" fill="white" stroke="#ddd" stroke-width="1.5"/>
+        <rect x="327" y="55" width="38" height="145" fill="white" stroke="#ddd" stroke-width="1.5"/>
+        <rect x="370" y="15" width="20" height="185" fill="white" stroke="#ddd" stroke-width="1.5"/>
+      </svg>
+    </div>
+
+    <!-- 커피 엎질러진 표현 (갈색 물결 라인 SVG) -->
+    <div class="coffee-spill">
+      <svg width="130" height="60" viewBox="0 0 130 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- 주 물웅덩이 (불규칙 곡선) -->
+        <path d="M 10 40 Q 20 25 40 30 Q 55 20 70 32 Q 85 22 100 30 Q 115 25 120 38 Q 110 50 90 48 Q 70 55 50 50 Q 30 55 15 48 Z"
+              fill="#8B5E3C" stroke="#5C3D1E" stroke-width="2" opacity="0.8"/>
+        <!-- 튀어나온 방울들 -->
+        <circle cx="25" cy="20" r="5" fill="#8B5E3C" stroke="#5C3D1E" stroke-width="1.5" opacity="0.7"/>
+        <circle cx="50" cy="12" r="4" fill="#8B5E3C" stroke="#5C3D1E" stroke-width="1.5" opacity="0.6"/>
+        <circle cx="80" cy="10" r="6" fill="#8B5E3C" stroke="#5C3D1E" stroke-width="1.5" opacity="0.7"/>
+        <circle cx="108" cy="15" r="4" fill="#8B5E3C" stroke="#5C3D1E" stroke-width="1.5" opacity="0.6"/>
+        <circle cx="120" cy="28" r="3" fill="#8B5E3C" stroke="#5C3D1E" stroke-width="1.5" opacity="0.5"/>
+        <circle cx="10" cy="30" r="3" fill="#8B5E3C" stroke="#5C3D1E" stroke-width="1" opacity="0.5"/>
+        <!-- 빈 트레이 -->
+        <line x1="55" y1="30" x2="95" y2="22" stroke="#5C3D1E" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- 쓰러진 캐릭터 (SVG 스틱맨) -->
+    <div class="fallen-char">
+      <svg width="160" height="100" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!--
+          쓰러진 상태: 90도 회전 (오른쪽으로 넘어짐)
+          팔다리가 사방으로 흩어진 포즈
+        -->
+        <!-- 왼 다리 (위로 올라가 있음) -->
+        <line x1="80" y1="55" x2="60"  y2="20" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+        <!-- 왼발 -->
+        <line x1="60" y1="20" x2="50"  y2="14" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="60" y1="20" x2="54"  y2="28" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+
+        <!-- 오른 다리 (뒤로 뻗어 있음) -->
+        <line x1="90" y1="55" x2="115" y2="40" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+        <!-- 오른발 -->
+        <line x1="115" y1="40" x2="125" y2="34" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="115" y1="40" x2="120" y2="48" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+
+        <!-- 몸통 (옆으로 눕힘) -->
+        <ellipse cx="85" cy="60" rx="22" ry="14" fill="white" stroke="#222" stroke-width="2.5"
+                 transform="rotate(-10, 85, 60)"/>
+        <!-- 넥타이 (흐트러짐) -->
+        <polygon points="80,52 84,62 76,62" fill="#333" stroke="#222" stroke-width="1"
+                 transform="rotate(-20, 80, 57)"/>
+
+        <!-- 목 -->
+        <line x1="60" y1="58" x2="64" y2="52" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+
+        <!-- 머리 (옆으로) -->
+        <circle cx="52" cy="52" r="14" fill="white" stroke="#222" stroke-width="2.5"/>
+        <!-- 찡그린 눈 (X표시) -->
+        <!-- 눈1: X -->
+        <line x1="44" y1="45" x2="50" y2="51" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+        <line x1="50" y1="45" x2="44" y2="51" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+        <!-- 눈2: X -->
+        <line x1="55" y1="45" x2="61" y2="51" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+        <line x1="61" y1="45" x2="55" y2="51" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+        <!-- 부리 (아래로 구부러짐) -->
+        <path d="M 47 58 Q 52 64 57 58" stroke="#FFD700" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+        <!-- 왼팔 (위로 올라가며 커피 트레이 놓침) -->
+        <line x1="72" y1="52" x2="48"  y2="32" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- 오른팔 (앞으로 뻗음) -->
+        <line x1="98" y1="52" x2="128" y2="58" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- 어지러움 (원형 점선) -->
+    <div class="dizzy-wrap">
+      <svg width="50" height="50" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="25" cy="25" r="18" stroke="#222" stroke-width="2" stroke-dasharray="4 4"/>
+        <text x="25" y="31" text-anchor="middle" font-size="16" font-family="serif">*</text>
+      </svg>
+    </div>
+
+    <!-- "아이고!" 텍스트 -->
+    <div class="aigo-text">아이고!</div>
+
+    <!-- 지면 -->
+    <div class="scene-ground"></div>
+
+  </div><!-- /scene-top -->
+
+  <!-- 하단 콘텐츠 -->
+  <div class="bottom-area">
+
+    <!-- 게임오버 타이틀 -->
+    <div class="gameover-title">
+      <div class="gameover-headline">커피를 쏟고 말았어요...</div>
+      <div class="gameover-sub">다시 도전해봐요! 균형을 잘 잡아야 해요</div>
+    </div>
+
+    <!-- 결과 박스 -->
+    <div class="result-box">
+
+      <div class="result-item">
+        <span class="result-label">이번 기록</span>
+        <span class="result-value">183<span class="result-unit">m</span></span>
+      </div>
+
+      <div class="result-item">
+        <span class="result-label">최고 기록</span>
+        <span class="result-value">247<span class="result-unit">m</span></span>
+        <!--
+          신기록 시:
+          <div class="new-record">NEW RECORD!</div>
+        -->
+      </div>
+
+    </div>
+
+    <!-- 비교 메시지 -->
+    <div class="compare-box">
+      <div class="compare-text">
+        최고기록까지 <span class="highlight">64m</span> 부족해요!<br>
+        조금만 더 균형을 잡아보면 될 것 같은데...
+      </div>
+    </div>
+
+    <!-- 버튼 그룹 -->
+    <div class="btn-group">
+
+      <button class="btn-retry">다시 도전하기!</button>
+
+      <div class="btn-row">
+        <button class="btn-secondary">결과 공유</button>
+        <button class="btn-secondary">홈으로</button>
+      </div>
+
+    </div>
+
+  </div><!-- /bottom-area -->
+
+</div><!-- /phone-frame -->
+
+</body>
+</html>

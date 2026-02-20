@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=390, initial-scale=1.0" />
+  <title>오피스 신입 새 - 시작 화면</title>
+  <style>
+    /* ── 디자인 토큰 (로파이 에디션) ── */
+    :root {
+      --bg:        #FFFFFF;
+      --line:      #222222;
+      --ground:    #888888;
+      --danger:    #FF4444;
+      --gold:      #FFD700;
+      --text:      #333333;
+      --text-muted:#777777;
+      --coffee:    #8B5E3C;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #DDDDDD;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Comic Sans MS', 'Comic Sans', 'Chalkboard SE', cursive;
+    }
+
+    /* 폰 프레임 */
+    .phone-frame {
+      width: 390px;
+      height: 844px;
+      background: var(--bg);
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      border: 3px solid var(--line);
+      box-shadow: 6px 6px 0 #000000;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── 상단 씬 영역 ── */
+    .scene-area {
+      position: relative;
+      height: 480px;
+      flex-shrink: 0;
+      background: #FFFFFF;
+      overflow: hidden;
+    }
+
+    /* 그림판 느낌 구름 (SVG inline) */
+    .clouds-layer {
+      position: absolute;
+      top: 16px;
+      left: 0;
+      right: 0;
+      z-index: 1;
+    }
+
+    /* 빌딩 레이어 (삐뚤삐뚤 라인 드로잉) */
+    .buildings-layer {
+      position: absolute;
+      bottom: 38px;
+      left: 0;
+      right: 0;
+      z-index: 2;
+    }
+
+    /* 지면 SVG */
+    .ground-layer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 3;
+    }
+
+    /* 게임 타이틀 */
+    .title-area {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      z-index: 10;
+    }
+
+    .game-title {
+      font-size: 28px;
+      font-weight: bold;
+      color: var(--line);
+      line-height: 1.2;
+      text-shadow: 3px 3px 0 rgba(0,0,0,0.15);
+      letter-spacing: -1px;
+    }
+
+    .game-title .underline-hand {
+      display: inline-block;
+      border-bottom: 3px solid var(--line);
+      padding-bottom: 2px;
+    }
+
+    .game-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* 캐릭터 래퍼 (흔들림 애니메이션) */
+    .character-wrap {
+      position: absolute;
+      bottom: 46px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      transform-origin: bottom center;
+      animation: charSway 2s ease-in-out infinite;
+    }
+
+    @keyframes charSway {
+      0%   { transform: translateX(-50%) rotate(-3deg); }
+      25%  { transform: translateX(-50%) rotate(4deg); }
+      50%  { transform: translateX(-50%) rotate(-2deg); }
+      75%  { transform: translateX(-50%) rotate(5deg); }
+      100% { transform: translateX(-50%) rotate(-3deg); }
+    }
+
+    /* ── 하단 콘텐츠 영역 ── */
+    .bottom-area {
+      flex: 1;
+      background: #FFFFFF;
+      border-top: 3px solid var(--line);
+      padding: 20px 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .bottom-area::-webkit-scrollbar { display: none; }
+
+    /* 최고기록 박스 */
+    .record-box {
+      border: 2px solid var(--line);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #FAFAFA;
+      transform: rotate(-0.5deg);
+    }
+
+    .record-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: bold;
+    }
+
+    .record-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: var(--line);
+      letter-spacing: -2px;
+    }
+
+    .record-unit {
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--text-muted);
+      margin-left: 2px;
+    }
+
+    .record-crown {
+      font-size: 22px;
+    }
+
+    /* 팁 텍스트 */
+    .tip-box {
+      border-left: 4px solid var(--line);
+      padding: 8px 12px;
+      background: #F8F8F8;
+    }
+
+    .tip-text {
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* 시작 버튼 (라인 박스 스타일) */
+    .btn-start {
+      width: 100%;
+      height: 60px;
+      background: #FFFFFF;
+      color: var(--line);
+      font-family: 'Comic Sans MS', 'Comic Sans', cursive;
+      font-size: 22px;
+      font-weight: bold;
+      border: 3px solid var(--line);
+      cursor: pointer;
+      box-shadow: 4px 4px 0 var(--line);
+      transition: box-shadow 0.1s, transform 0.1s;
+      letter-spacing: -0.5px;
+    }
+
+    .btn-start:hover {
+      box-shadow: 2px 2px 0 var(--line);
+      transform: translate(2px, 2px);
+    }
+
+    .btn-start:active {
+      box-shadow: 0 0 0 var(--line);
+      transform: translate(4px, 4px);
+    }
+
+    /* 작은 도움말 링크 */
+    .help-link {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      text-decoration: underline;
+      background: none;
+      border: none;
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+<div class="phone-frame">
+
+  <!-- 씬 영역 -->
+  <div class="scene-area">
+
+    <!-- 타이틀 -->
+    <div class="title-area">
+      <div class="game-title">
+        <span class="underline-hand">오피스 신입 새</span><br>
+        출근 대작전
+      </div>
+      <div class="game-subtitle">커피 들고 휘청휘청 출근하기!</div>
+    </div>
+
+    <!-- 구름 (그림판 느낌 SVG) -->
+    <div class="clouds-layer">
+      <svg width="390" height="60" viewBox="0 0 390 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- 구름 1 -->
+        <path d="M 30 45 Q 25 35 35 33 Q 33 22 45 24 Q 47 16 58 20 Q 66 14 72 22 Q 82 18 82 30 Q 88 32 85 42 Z"
+              stroke="#222" stroke-width="2" fill="white"/>
+        <!-- 구름 2 -->
+        <path d="M 240 40 Q 236 31 244 29 Q 243 20 253 22 Q 255 15 264 19 Q 270 14 276 21 Q 284 18 284 28 Q 289 30 287 38 Z"
+              stroke="#222" stroke-width="2" fill="white"/>
+        <!-- 구름 3 (조금 오른쪽) -->
+        <path d="M 310 50 Q 305 42 314 40 Q 312 32 320 33 Q 322 27 329 30 Q 334 25 339 31 Q 346 29 346 38 Q 350 40 348 48 Z"
+              stroke="#222" stroke-width="1.5" fill="white" opacity="0.7"/>
+      </svg>
+    </div>
+
+    <!--
+      빌딩 (삐뚤삐뚤 path - 손으로 대충 그린 느낌)
+      모든 rect를 path로 교체. 창문도 비뚤어진 path.
+    -->
+    <div class="buildings-layer">
+      <svg width="390" height="210" viewBox="0 0 390 210" fill="white" xmlns="http://www.w3.org/2000/svg"
+           style="display:block;">
+
+        <!-- ── 빌딩 A ── -->
+        <path d="M 12,210 L 10,82 Q 13,79 16,80 L 53,79 Q 57,81 56,84 L 57,210 Z"
+              fill="white" stroke="#222" stroke-width="2" stroke-linejoin="round"/>
+        <!-- 창문 A (삐뚤삐뚤) -->
+        <path d="M 17,91 L 16,99 L 24,100 L 25,92 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 29,90 L 28,99 L 37,99 L 37,91 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 41,91 L 40,100 L 49,99 L 49,92 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 17,105 L 16,114 L 25,114 L 25,106 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 29,105 L 28,113 L 37,114 L 38,106 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 41,106 L 40,114 L 49,114 L 50,106 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 17,120 L 17,129 L 25,128 L 25,120 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 29,120 L 29,129 L 38,129 L 38,121 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 41,120 L 41,129 L 50,128 L 50,121 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <!-- 안테나 A -->
+        <path d="M 33,80 Q 32,75 34,70" stroke="#222" stroke-width="2" fill="none"/>
+        <circle cx="34" cy="68" r="3" fill="white" stroke="#222" stroke-width="1.5"/>
+
+        <!-- ── 빌딩 B (키가 큰) ── -->
+        <path d="M 63,210 L 61,42 Q 64,39 67,40 L 112,39 Q 116,41 115,44 L 116,210 Z"
+              fill="white" stroke="#222" stroke-width="2" stroke-linejoin="round"/>
+        <!-- 창문 B -->
+        <path d="M 69,52 L 68,62 L 78,63 L 79,53 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 83,51 L 82,62 L 93,62 L 93,52 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 97,52 L 96,62 L 107,62 L 107,53 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 69,68 L 68,78 L 79,78 L 79,69 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 83,68 L 83,78 L 93,78 L 94,69 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 97,68 L 97,78 L 108,78 L 107,69 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 69,84 L 69,95 L 79,94 L 79,85 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 83,84 L 83,95 L 94,94 L 93,85 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 97,85 L 97,95 L 108,95 L 107,86 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 69,101 L 69,111 L 80,111 L 80,102 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 83,101 L 83,112 L 94,111 L 93,102 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 97,101 L 97,111 L 108,111 L 108,102 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+
+        <!-- ── 빌딩 C (넓은) ── -->
+        <path d="M 122,210 L 121,62 Q 124,59 127,60 L 179,59 Q 183,61 182,64 L 183,210 Z"
+              fill="white" stroke="#222" stroke-width="2" stroke-linejoin="round"/>
+        <!-- 창문 C -->
+        <path d="M 129,72 L 128,82 L 138,83 L 139,73 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 144,71 L 143,82 L 154,82 L 154,72 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 159,72 L 158,83 L 169,82 L 169,73 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 129,88 L 128,99 L 139,99 L 139,89 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 144,88 L 143,99 L 154,99 L 155,89 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 159,89 L 158,99 L 169,99 L 170,90 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 129,105 L 128,116 L 139,116 L 140,106 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 144,105 L 143,116 L 155,116 L 155,106 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 159,105 L 159,116 L 170,116 L 170,106 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <!-- 물탱크 옥상 C -->
+        <path d="M 141,62 L 140,52 L 162,51 L 163,62 Z"
+              fill="white" stroke="#222" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M 147,52 Q 147,49 148,47" stroke="#222" stroke-width="1.5" fill="none"/>
+        <path d="M 157,52 Q 157,49 158,47" stroke="#222" stroke-width="1.5" fill="none"/>
+
+        <!-- ── 빌딩 D ── -->
+        <path d="M 189,210 L 188,92 Q 191,89 194,90 L 226,89 Q 229,91 228,94 L 229,210 Z"
+              fill="white" stroke="#222" stroke-width="2" stroke-linejoin="round"/>
+        <!-- 창문 D -->
+        <path d="M 195,100 L 195,110 L 204,110 L 204,101 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 208,100 L 207,110 L 217,110 L 217,101 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 195,115 L 195,125 L 205,125 L 204,116 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 208,115 L 208,125 L 218,124 L 217,116 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+
+        <!-- ── 빌딩 E (배경) ── -->
+        <path d="M 234,210 L 233,57 Q 236,54 239,55 L 280,54 Q 284,56 283,59 L 284,210 Z"
+              fill="white" stroke="#222" stroke-width="2" stroke-linejoin="round"/>
+        <!-- 창문 E -->
+        <path d="M 240,66 L 239,76 L 249,76 L 250,67 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 254,66 L 253,76 L 263,76 L 264,67 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 268,66 L 268,76 L 278,76 L 278,67 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 240,82 L 240,92 L 250,92 L 250,83 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 254,82 L 253,92 L 264,92 L 264,83 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 268,82 L 268,92 L 279,92 L 278,83 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 241,98 L 240,108 L 250,108 L 251,99 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 254,98 L 254,108 L 264,108 L 264,99 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 268,98 L 268,108 L 279,108 L 278,99 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+
+        <!-- ── 빌딩 F ── -->
+        <path d="M 289,210 L 288,77 Q 291,74 294,75 L 328,74 Q 332,76 331,79 L 332,210 Z"
+              fill="white" stroke="#222" stroke-width="2" stroke-linejoin="round"/>
+        <!-- 창문 F -->
+        <path d="M 295,85 L 294,95 L 304,95 L 304,86 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 309,85 L 308,95 L 318,95 L 318,86 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 295,101 L 295,111 L 305,110 L 304,102 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 309,101 L 309,111 L 319,110 L 318,102 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <!-- 안테나 F -->
+        <path d="M 310,75 Q 310,68 311,62" stroke="#222" stroke-width="1.5" fill="none"/>
+        <path d="M 306,66 Q 311,62 316,62" stroke="#222" stroke-width="1.5" fill="none"/>
+
+        <!-- ── 빌딩 G (오른쪽 끝) ── -->
+        <path d="M 336,210 L 335,67 Q 338,64 341,65 L 389,64 Q 392,66 391,69 L 392,210 Z"
+              fill="white" stroke="#222" stroke-width="2" stroke-linejoin="round"/>
+        <!-- 창문 G -->
+        <path d="M 342,75 L 341,85 L 352,85 L 352,76 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 357,75 L 357,85 L 368,85 L 367,76 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 372,75 L 372,85 L 382,85 L 382,76 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 342,91 L 342,101 L 352,101 L 352,92 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 357,91 L 357,102 L 368,101 L 368,92 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+        <path d="M 372,91 L 372,102 L 383,101 L 382,92 Z" fill="none" stroke="#222" stroke-width="1.5"/>
+
+        <!-- 나무 (막대기+동그라미 - 약간 비뚤) -->
+        <path d="M 300,210 Q 299,195 300,168" stroke="#222" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M 300,168 Q 288,165 289,157 Q 288,148 298,147 Q 301,139 309,142 Q 318,141 319,150 Q 326,153 323,161 Q 322,168 312,168 Z"
+              fill="white" stroke="#222" stroke-width="2"/>
+        <path d="M 342,210 Q 341,198 342,175" stroke="#222" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M 342,175 Q 332,173 332,166 Q 331,158 340,157 Q 342,150 350,153 Q 357,151 358,159 Q 363,163 360,170 Q 358,175 350,175 Z"
+              fill="white" stroke="#222" stroke-width="2"/>
+      </svg>
+    </div>
+
+    <!-- 지면 (울퉁불퉁 SVG 곡선) -->
+    <div class="ground-layer">
+      <svg width="390" height="48" viewBox="0 0 390 48" fill="none" xmlns="http://www.w3.org/2000/svg"
+           style="display:block;">
+        <!-- 울퉁불퉁 지면 라인 -->
+        <path d="M 0,12 Q 20,9 40,13 Q 60,16 80,11 Q 100,7 120,13 Q 140,18 160,12 Q 180,7 200,11 Q 220,15 240,10 Q 260,6 280,12 Q 300,17 320,11 Q 340,6 360,13 Q 375,17 390,12"
+              stroke="#555555" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <!-- 두께감 라인 (살짝 아래) -->
+        <path d="M 0,18 Q 18,15 42,19 Q 62,22 82,17 Q 103,13 122,19 Q 143,24 162,18 Q 182,13 202,17 Q 222,21 242,16 Q 262,12 282,18 Q 301,23 322,17 Q 342,12 361,19 Q 376,23 390,18 L 390,48 L 0,48 Z"
+              fill="#888888" stroke="#888888" stroke-width="1"/>
+      </svg>
+    </div>
+
+    <!--
+      캐릭터 (SVG 스틱맨 스타일 황새)
+      - 몸통/머리 소형화
+      - 팔다리 곡선 path
+      - 발 완전 제거
+    -->
+    <div class="character-wrap">
+      <svg id="birdChar" width="100" height="170" viewBox="0 0 100 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+        <!-- ── 다리 (곡선 path, 발 없음) ── -->
+        <!-- 왼 다리 -->
+        <path id="legL"
+              d="M 44,100 Q 50,115 38,130 Q 30,143 36,158"
+              stroke="#222" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <!-- 오른 다리 -->
+        <path id="legR"
+              d="M 56,100 Q 50,115 62,130 Q 70,143 64,158"
+              stroke="#222" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+        <!-- ── 몸통 (작은 타원) ── -->
+        <ellipse cx="50" cy="90" rx="13" ry="11" fill="white" stroke="#222" stroke-width="2"/>
+        <!-- 넥타이 (작은 삼각형) -->
+        <polygon points="50,82 52,90 48,90" fill="#333" stroke="#222" stroke-width="1"/>
+
+        <!-- ── 목 ── -->
+        <line x1="50" y1="75" x2="50" y2="80" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+
+        <!-- ── 머리 (작은 원) ── -->
+        <circle cx="50" cy="68" r="11" fill="white" stroke="#222" stroke-width="2"/>
+        <!-- 눈 (점) -->
+        <circle cx="45" cy="65" r="2" fill="#222"/>
+        <circle cx="55" cy="65" r="2" fill="#222"/>
+        <!-- 부리 (작은 삼각형) -->
+        <polygon points="50,70 46,74 54,74" fill="#FFD700" stroke="#222" stroke-width="1.2"/>
+
+        <!-- ── 팔 (곡선 path) ── -->
+        <!-- 왼팔 (S자 곡선) -->
+        <path id="armL"
+              d="M 38,87 Q 28,82 20,90 Q 14,96 10,92"
+              stroke="#222" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <!-- 오른팔 + 커피 트레이 (S자 곡선) -->
+        <path id="armR"
+              d="M 62,87 Q 72,81 80,86 Q 86,90 88,85"
+              stroke="#222" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <!-- 트레이 (비뚤어진 선) -->
+        <path d="M 84,82 Q 88,80 95,81 Q 100,82 102,81"
+              stroke="#222" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <!-- 컵 1 -->
+        <rect x="83" y="73" width="6" height="9" fill="white" stroke="#222" stroke-width="1.5" rx="1"/>
+        <rect x="83" y="73" width="6" height="3" fill="#8B5E3C" stroke="none" rx="1"/>
+        <!-- 컵 2 -->
+        <rect x="91" y="73" width="6" height="9" fill="white" stroke="#222" stroke-width="1.5" rx="1"/>
+        <rect x="91" y="73" width="6" height="3" fill="#8B5E3C" stroke="none" rx="1"/>
+      </svg>
+    </div>
+
+  </div><!-- /scene-area -->
+
+  <!-- 하단 콘텐츠 -->
+  <div class="bottom-area">
+
+    <!-- 최고기록 -->
+    <div class="record-box">
+      <div>
+        <div class="record-label">최고 기록</div>
+        <div>
+          <span class="record-value">247</span>
+          <span class="record-unit">m</span>
+        </div>
+      </div>
+      <div class="record-crown">🏆</div>
+    </div>
+
+    <!-- 팁 -->
+    <div class="tip-box">
+      <div class="tip-text">
+        화면 <strong>좌/우를 탭</strong>해서 균형을 잡아요.<br>
+        커피 쏟으면 그 즉시 OUT!
+      </div>
+    </div>
+
+    <!-- 시작 버튼 -->
+    <button class="btn-start" onclick="this.style.transform='translate(4px,4px)'; this.style.boxShadow='0 0 0 #222'">
+      🚶 시작하기!
+    </button>
+
+    <!-- 도움말 -->
+    <button class="help-link">조작 방법 보기</button>
+
+  </div>
+
+</div><!-- /phone-frame -->
+
+<style>
+  /*
+    팔다리 걷기 애니메이션
+    path는 CSS transform으로 회전 제어
+    transform-box: fill-box 로 각 path 자신의 bbox 기준 회전
+  */
+
+  /* 왼 다리 - 허벅지 부근 (44,100) 기준 흔들림 */
+  #legL {
+    transform-origin: 44px 100px;
+    transform-box: fill-box;
+    animation: legLWave 0.7s ease-in-out infinite;
+  }
+  @keyframes legLWave {
+    0%   { transform: rotate(-14deg); }
+    50%  { transform: rotate(14deg); }
+    100% { transform: rotate(-14deg); }
+  }
+
+  /* 오른 다리 - 허벅지 부근 (56,100) 기준, 반대 위상 */
+  #legR {
+    transform-origin: 56px 100px;
+    transform-box: fill-box;
+    animation: legRWave 0.7s ease-in-out infinite;
+  }
+  @keyframes legRWave {
+    0%   { transform: rotate(14deg); }
+    50%  { transform: rotate(-14deg); }
+    100% { transform: rotate(14deg); }
+  }
+
+  /* 왼팔 - 어깨 (38,87) 기준 */
+  #armL {
+    transform-origin: 38px 87px;
+    transform-box: fill-box;
+    animation: armLWave 0.7s ease-in-out infinite;
+  }
+  @keyframes armLWave {
+    0%   { transform: rotate(10deg); }
+    50%  { transform: rotate(-10deg); }
+    100% { transform: rotate(10deg); }
+  }
+
+  /* 오른팔 - 어깨 (62,87) 기준, 반대 위상 */
+  #armR {
+    transform-origin: 62px 87px;
+    transform-box: fill-box;
+    animation: armRWave 0.7s ease-in-out infinite;
+  }
+  @keyframes armRWave {
+    0%   { transform: rotate(-10deg); }
+    50%  { transform: rotate(10deg); }
+    100% { transform: rotate(-10deg); }
+  }
+</style>
+
+</body>
+</html>

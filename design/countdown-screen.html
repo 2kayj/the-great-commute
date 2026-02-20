@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=390, initial-scale=1.0" />
+  <title>오피스 신입 새 - 카운트다운</title>
+  <style>
+    :root {
+      --bg:     #FFFFFF;
+      --line:   #222222;
+      --ground: #888888;
+      --danger: #FF4444;
+      --gold:   #FFD700;
+      --text:   #333333;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #CCCCCC;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Comic Sans MS', 'Comic Sans', 'Chalkboard SE', cursive;
+    }
+
+    .phone-frame {
+      width: 390px;
+      height: 844px;
+      background: #FFFFFF;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      border: 3px solid var(--line);
+      box-shadow: 6px 6px 0 #000;
+    }
+
+    /* ── 흰 배경 ── */
+    .bg-layer {
+      position: absolute;
+      inset: 0;
+      background: #FFFFFF;
+    }
+
+    /* ── 구름 (천천히 흐름) ── */
+    .clouds-layer {
+      position: absolute;
+      top: 40px;
+      left: 0;
+      width: 800px;
+      z-index: 2;
+      animation: cloudDrift 20s linear infinite;
+      opacity: 0.6;
+    }
+    @keyframes cloudDrift {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-390px); }
+    }
+
+    /* ── 배경 빌딩 (흐리게, 라인만) ── */
+    .buildings-bg {
+      position: absolute;
+      bottom: 110px;
+      left: 0;
+      width: 900px;
+      z-index: 3;
+      opacity: 0.2;
+      animation: bldScroll 8s linear infinite;
+    }
+    @keyframes bldScroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-450px); }
+    }
+
+    /* ── 지면 ── */
+    .ground-strip {
+      position: absolute;
+      bottom: 90px;
+      left: 0;
+      right: 0;
+      height: 20px;
+      z-index: 4;
+    }
+    .ground-line-top {
+      height: 3px;
+      background: var(--line);
+      opacity: 0.3;
+    }
+    .ground-fill-bar {
+      height: 17px;
+      background: var(--ground);
+      opacity: 0.3;
+    }
+
+    /* ── 하단 캐릭터 ── */
+    .char-bottom {
+      position: absolute;
+      bottom: 105px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      animation: charReadyBounce 0.6s ease-in-out infinite alternate;
+    }
+    @keyframes charReadyBounce {
+      0%   { transform: translateX(-50%) translateY(0) rotate(-3deg); }
+      100% { transform: translateX(-50%) translateY(-8px) rotate(3deg); }
+    }
+
+    /* ── 중앙 카운트다운 영역 ── */
+    .countdown-center {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+
+    /* 준비 라벨 */
+    .ready-label {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--line);
+      letter-spacing: 4px;
+      margin-bottom: 20px;
+      /* 라인 아래 강조 */
+      border-bottom: 3px solid var(--line);
+      padding-bottom: 4px;
+      animation: readyIn 0.4s ease-out;
+    }
+
+    @keyframes readyIn {
+      0%   { transform: translateY(-12px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    /* 숫자 컨테이너 */
+    .number-box {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* 그림판 느낌 사각형 테두리 */
+      border: 4px solid var(--line);
+      box-shadow: 6px 6px 0 var(--line);
+      background: white;
+    }
+
+    /* 모서리 장식 (그림판 느낌) */
+    .number-box::before {
+      content: '';
+      position: absolute;
+      top: -12px;
+      left: -12px;
+      width: 20px;
+      height: 20px;
+      border-top: 4px solid var(--line);
+      border-left: 4px solid var(--line);
+      background: white;
+    }
+    .number-box::after {
+      content: '';
+      position: absolute;
+      bottom: -12px;
+      right: -12px;
+      width: 20px;
+      height: 20px;
+      border-bottom: 4px solid var(--line);
+      border-right: 4px solid var(--line);
+      background: white;
+    }
+
+    /* 숫자 */
+    .count-number {
+      font-size: 140px;
+      font-weight: bold;
+      color: var(--line);
+      letter-spacing: -6px;
+      line-height: 1;
+      position: relative;
+      z-index: 2;
+      /* 손으로 쓴 느낌 텍스트 그림자 */
+      text-shadow: 4px 4px 0 rgba(0,0,0,0.12);
+      animation: numberPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes numberPop {
+      0%   { transform: scale(1.8) rotate(-5deg); opacity: 0; }
+      60%  { transform: scale(0.92) rotate(2deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    /* "GO!" 텍스트 */
+    .go-text {
+      font-size: 90px;
+      font-weight: bold;
+      color: var(--danger);
+      letter-spacing: -3px;
+      line-height: 1;
+      position: relative;
+      z-index: 2;
+      display: none;
+      text-shadow: 5px 5px 0 rgba(255,68,68,0.2);
+      animation: goPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes goPop {
+      0%   { transform: scale(0.4) rotate(8deg); opacity: 0; }
+      70%  { transform: scale(1.1) rotate(-3deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    /* 하단 메시지 */
+    .countdown-msg {
+      margin-top: 28px;
+      text-align: center;
+    }
+
+    .msg-main {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--line);
+      margin-bottom: 6px;
+    }
+
+    .msg-sub {
+      font-size: 12px;
+      color: #777;
+    }
+
+    /* 시연용 컨트롤 */
+    .demo-controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+    }
+
+    .demo-btn {
+      padding: 10px 24px;
+      background: var(--line);
+      color: white;
+      border: none;
+      font-family: 'Comic Sans MS', cursive;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 3px 3px 0 #555;
+      transition: box-shadow 0.1s, transform 0.1s;
+    }
+
+    .demo-btn:hover {
+      box-shadow: 1px 1px 0 #555;
+      transform: translate(2px, 2px);
+    }
+
+    .demo-btn:active {
+      box-shadow: 0 0 0 #555;
+      transform: translate(3px, 3px);
+    }
+
+    /* 화면 플래시 (카운트 전환 시) */
+    @keyframes screenFlash {
+      0%   { filter: brightness(1.5); }
+      100% { filter: brightness(1); }
+    }
+    .do-flash { animation: screenFlash 0.18s ease-out; }
+  </style>
+</head>
+<body>
+
+<div class="phone-frame" id="phoneFrame">
+
+  <!-- 흰 배경 -->
+  <div class="bg-layer"></div>
+
+  <!-- 구름 -->
+  <div class="clouds-layer">
+    <svg width="800" height="60" viewBox="0 0 800 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 30 50 Q 25 38 36 36 Q 34 25 46 27 Q 48 18 60 22 Q 68 15 74 23 Q 85 19 85 32 Q 91 34 88 46 Z"
+            stroke="#222" stroke-width="2" fill="white"/>
+      <path d="M 200 48 Q 195 38 205 36 Q 203 27 213 29 Q 215 22 223 25 Q 229 20 234 26 Q 242 23 242 33 Q 246 35 244 45 Z"
+            stroke="#222" stroke-width="1.5" fill="white"/>
+      <path d="M 360 52 Q 356 40 366 38 Q 364 29 374 31 Q 376 24 385 28 Q 391 22 396 29 Q 404 26 404 37 Q 408 39 406 50 Z"
+            stroke="#222" stroke-width="2" fill="white"/>
+      <path d="M 520 46 Q 516 36 525 34 Q 523 26 531 28 Q 533 22 540 25 Q 545 20 550 26 Q 557 23 557 33 Q 561 35 559 44 Z"
+            stroke="#222" stroke-width="1.5" fill="white"/>
+      <path d="M 650 50 Q 646 40 655 38 Q 653 30 662 32 Q 664 25 672 29 Q 678 23 683 30 Q 691 27 691 38 Q 695 40 693 49 Z"
+            stroke="#222" stroke-width="2" fill="white"/>
+      <path d="M 740 44 Q 735 34 745 32 Q 743 24 752 26 Q 754 19 761 23 Q 766 18 771 24 Q 779 21 779 31 Q 783 33 781 43 Z"
+            stroke="#222" stroke-width="1.5" fill="white"/>
+    </svg>
+  </div>
+
+  <!-- 배경 빌딩 -->
+  <div class="buildings-bg">
+    <svg width="900" height="220" viewBox="0 0 900 220" fill="white" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0"   y="60" width="40" height="160" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="6"   y="68" width="8"  height="8"  fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="18"  y="68" width="8"  height="8"  fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="30"  y="68" width="8"  height="8"  fill="none" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="45"  y="20" width="60" height="200" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="52"  y="30" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="66"  y="30" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="80"  y="30" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="94"  y="30" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="52"  y="46" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="66"  y="46" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="80"  y="46" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="94"  y="46" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <line x1="75" y1="20" x2="75" y2="5" stroke="#222" stroke-width="2"/>
+      <circle cx="75" cy="3" r="3" fill="white" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="110" y="45" width="50" height="175" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="117" y="55" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="131" y="55" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="145" y="55" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="165" y="15" width="68" height="205" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="173" y="25" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="188" y="25" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="203" y="25" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="218" y="25" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="173" y="42" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="188" y="42" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="203" y="42" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="218" y="42" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="173" y="59" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="188" y="59" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="203" y="59" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="218" y="59" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <!-- 물탱크 -->
+      <rect x="183" y="2" width="28" height="15" fill="white" stroke="#222" stroke-width="1.5"/>
+      <line x1="189" y1="2" x2="189" y2="0" stroke="#222" stroke-width="1.5"/>
+      <line x1="201" y1="2" x2="201" y2="0" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="238" y="40" width="45" height="180" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="245" y="50" width="9" height="9" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="258" y="50" width="9" height="9" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="271" y="50" width="9" height="9" fill="none" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="288" y="25" width="55" height="195" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="296" y="35" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="310" y="35" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="324" y="35" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="338" y="35" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <line x1="315" y1="25" x2="315" y2="10" stroke="#222" stroke-width="2"/>
+      <line x1="311" y1="16" x2="319" y2="10" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="348" y="55" width="42" height="165" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="355" y="65" width="9" height="9" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="368" y="65" width="9" height="9" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="381" y="65" width="9" height="9" fill="none" stroke="#222" stroke-width="1.5"/>
+
+      <!-- 세트 B (반복) -->
+      <rect x="450" y="60" width="40" height="160" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="495" y="20" width="60" height="200" fill="white" stroke="#222" stroke-width="2"/>
+      <line x1="525" y1="20" x2="525" y2="5" stroke="#222" stroke-width="2"/>
+      <circle cx="525" cy="3" r="3" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="560" y="45" width="50" height="175" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="615" y="15" width="68" height="205" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="688" y="40" width="45" height="180" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="738" y="25" width="55" height="195" fill="white" stroke="#222" stroke-width="2"/>
+      <line x1="765" y1="25" x2="765" y2="10" stroke="#222" stroke-width="2"/>
+      <line x1="761" y1="16" x2="769" y2="10" stroke="#222" stroke-width="1.5"/>
+      <rect x="798" y="55" width="42" height="165" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="845" y="35" width="55" height="185" fill="white" stroke="#222" stroke-width="2"/>
+    </svg>
+  </div>
+
+  <!-- 지면 -->
+  <div class="ground-strip">
+    <div class="ground-line-top"></div>
+    <div class="ground-fill-bar"></div>
+  </div>
+
+  <!-- 하단 캐릭터 (SVG 스틱맨) -->
+  <div class="char-bottom">
+    <svg width="52" height="112" viewBox="0 0 52 112" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- 다리 -->
+      <line id="cdLegL" x1="20" y1="70" x2="10" y2="100" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+      <line id="cdLegR" x1="32" y1="70" x2="42" y2="100" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 왼발 -->
+      <line x1="10" y1="100" x2="4"  y2="104" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+      <!-- 오른발 -->
+      <line x1="42" y1="100" x2="48" y2="104" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+
+      <!-- 몸통 -->
+      <ellipse cx="26" cy="58" rx="13" ry="13" fill="white" stroke="#222" stroke-width="2"/>
+      <!-- 넥타이 -->
+      <polygon points="26,49 28,57 24,57" fill="#333" stroke="#222" stroke-width="0.8"/>
+
+      <!-- 목 -->
+      <line x1="26" y1="45" x2="26" y2="49" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+
+      <!-- 머리 -->
+      <circle cx="26" cy="38" r="11" fill="white" stroke="#222" stroke-width="2"/>
+      <!-- 눈 -->
+      <circle cx="21" cy="36" r="1.8" fill="#222"/>
+      <circle cx="31" cy="36" r="1.8" fill="#222"/>
+      <!-- 부리 -->
+      <polygon points="26,40 23,44 29,44" fill="#FFD700" stroke="#222" stroke-width="1.2"/>
+
+      <!-- 왼팔 -->
+      <line id="cdArmL" x1="14" y1="56" x2="5"  y2="64" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+      <!-- 오른팔 + 트레이 -->
+      <line id="cdArmR" x1="38" y1="56" x2="46" y2="50" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+      <!-- 트레이 -->
+      <line x1="42" y1="47" x2="52" y2="47" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+      <!-- 컵 -->
+      <rect x="42" y="41" width="4" height="6" fill="white" stroke="#222" stroke-width="1.2" rx="0.3"/>
+      <rect x="42" y="41" width="4" height="2" fill="#8B5E3C" stroke="none"/>
+      <rect x="48" y="41" width="4" height="6" fill="white" stroke="#222" stroke-width="1.2" rx="0.3"/>
+      <rect x="48" y="41" width="4" height="2" fill="#8B5E3C" stroke="none"/>
+    </svg>
+  </div>
+
+  <!-- 카운트다운 중앙 -->
+  <div class="countdown-center">
+
+    <div class="ready-label" id="readyLabel">READY?</div>
+
+    <div class="number-box" id="numberBox">
+      <span class="count-number" id="countNumber">3</span>
+      <span class="go-text" id="goText">GO!</span>
+    </div>
+
+    <div class="countdown-msg" id="countdownMsg">
+      <div class="msg-main" id="msgMain">커피를 쏟지 말고 출근하세요!</div>
+      <div class="msg-sub" id="msgSub">화면 좌/우를 탭해 균형을 잡아요</div>
+    </div>
+
+  </div>
+
+</div><!-- /phone-frame -->
+
+<!-- 시연 컨트롤 -->
+<div class="demo-controls">
+  <button class="demo-btn" onclick="restartCountdown()">다시 카운트다운</button>
+</div>
+
+<style>
+  /* 캐릭터 걷기 (카운트다운 중 통통 튀기) */
+  @keyframes cdLegLAnim {
+    0%   { transform-origin: 20px 70px; transform: rotate(-15deg); }
+    50%  { transform-origin: 20px 70px; transform: rotate(12deg); }
+    100% { transform-origin: 20px 70px; transform: rotate(-15deg); }
+  }
+  @keyframes cdLegRAnim {
+    0%   { transform-origin: 32px 70px; transform: rotate(12deg); }
+    50%  { transform-origin: 32px 70px; transform: rotate(-15deg); }
+    100% { transform-origin: 32px 70px; transform: rotate(12deg); }
+  }
+  @keyframes cdArmLAnim {
+    0%   { transform-origin: 14px 56px; transform: rotate(10deg); }
+    50%  { transform-origin: 14px 56px; transform: rotate(-8deg); }
+    100% { transform-origin: 14px 56px; transform: rotate(10deg); }
+  }
+  @keyframes cdArmRAnim {
+    0%   { transform-origin: 38px 56px; transform: rotate(-8deg); }
+    50%  { transform-origin: 38px 56px; transform: rotate(10deg); }
+    100% { transform-origin: 38px 56px; transform: rotate(-8deg); }
+  }
+
+  #cdLegL { animation: cdLegLAnim 0.5s ease-in-out infinite; }
+  #cdLegR { animation: cdLegRAnim 0.5s ease-in-out infinite; }
+  #cdArmL { animation: cdArmLAnim 0.5s ease-in-out infinite; }
+  #cdArmR { animation: cdArmRAnim 0.5s ease-in-out infinite; }
+</style>
+
+<script>
+  let currentCount = 3;
+  let countInterval = null;
+
+  const messages = {
+    3: { main: "커피를 쏟지 말고 출근하세요!", sub: "화면 좌/우를 탭해 균형을 잡아요" },
+    2: { main: "균형을 잘 잡아야 해요!",       sub: "너무 기울면 커피가 쏟아져요" },
+    1: { main: "이제 진짜 출발이에요!",          sub: "집중하세요!" },
+  };
+
+  function doFlash() {
+    const frame = document.getElementById('phoneFrame');
+    frame.classList.remove('do-flash');
+    void frame.offsetWidth; // reflow 트리거
+    frame.classList.add('do-flash');
+  }
+
+  function showCount(n) {
+    const numEl      = document.getElementById('countNumber');
+    const goEl       = document.getElementById('goText');
+    const readyLabel = document.getElementById('readyLabel');
+    const msgMain    = document.getElementById('msgMain');
+    const msgSub     = document.getElementById('msgSub');
+    const box        = document.getElementById('numberBox');
+
+    if (n === 'GO') {
+      numEl.style.display = 'none';
+      goEl.style.display  = 'block';
+
+      // 박스 테두리 색 변경 (빨강)
+      box.style.borderColor = '#FF4444';
+      box.style.boxShadow   = '6px 6px 0 #FF4444';
+
+      readyLabel.style.display = 'none';
+      msgMain.textContent = '출발!';
+      msgSub.textContent  = '균형을 잡으며 오피스까지 달려가요!';
+
+      doFlash();
+      return;
+    }
+
+    numEl.style.display = 'block';
+    goEl.style.display  = 'none';
+
+    // 숫자 애니메이션 재시작
+    numEl.style.animation = 'none';
+    void numEl.offsetWidth;
+    numEl.style.animation = 'numberPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    numEl.textContent = n;
+
+    // 숫자별 색상 변화
+    const colors = { 3: '#222222', 2: '#333333', 1: '#FF4444' };
+    numEl.style.color = colors[n] || '#222222';
+
+    // 박스 테두리 색 (1일 때 빨강)
+    if (n === 1) {
+      box.style.borderColor = '#FF4444';
+      box.style.boxShadow   = '6px 6px 0 #FF4444';
+    } else {
+      box.style.borderColor = '#222222';
+      box.style.boxShadow   = '6px 6px 0 #222222';
+    }
+
+    if (messages[n]) {
+      msgMain.textContent = messages[n].main;
+      msgSub.textContent  = messages[n].sub;
+    }
+
+    doFlash();
+  }
+
+  function startCountdown() {
+    currentCount = 3;
+    showCount(3);
+
+    countInterval = setInterval(() => {
+      currentCount--;
+
+      if (currentCount === 0) {
+        clearInterval(countInterval);
+        setTimeout(() => showCount('GO'), 1000);
+        return;
+      }
+
+      showCount(currentCount);
+    }, 1000);
+  }
+
+  function restartCountdown() {
+    if (countInterval) clearInterval(countInterval);
+
+    const numEl      = document.getElementById('countNumber');
+    const goEl       = document.getElementById('goText');
+    const readyLabel = document.getElementById('readyLabel');
+    const box        = document.getElementById('numberBox');
+
+    numEl.style.display  = 'block';
+    goEl.style.display   = 'none';
+    readyLabel.style.display = 'block';
+    box.style.borderColor = '#222222';
+    box.style.boxShadow   = '6px 6px 0 #222222';
+    numEl.style.color = '#222222';
+
+    startCountdown();
+  }
+
+  window.onload = () => setTimeout(startCountdown, 600);
+</script>
+
+</body>
+</html>

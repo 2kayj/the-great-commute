@@ -1,0 +1,165 @@
+.countdown-screen {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.do-flash {
+  animation: screenFlash 0.18s ease-out;
+}
+
+@keyframes screenFlash {
+  0%   { filter: brightness(1.5); }
+  100% { filter: brightness(1); }
+}
+
+/* Animated canvas — fills the full screen, behind everything */
+.cd-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 390px;
+  height: 844px;
+  display: block;
+  z-index: 1;
+}
+
+/* Countdown overlay sits above the canvas */
+.cd-center {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  pointer-events: none;
+}
+
+.ready-label {
+  font-size: 18px;
+  font-weight: bold;
+  color: #222;
+  letter-spacing: 4px;
+  margin-bottom: 20px;
+  border-bottom: 3px solid #222;
+  padding-bottom: 4px;
+  background: rgba(255,255,255,0.85);
+  padding: 4px 12px;
+  animation: readyIn 0.4s ease-out;
+}
+
+@keyframes readyIn {
+  0%   { transform: translateY(-12px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.number-box {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid #222;
+  box-shadow: 6px 6px 0 #222;
+  background: rgba(255,255,255,0.92);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.number-box::before {
+  content: '';
+  position: absolute;
+  top: -12px; left: -12px;
+  width: 20px; height: 20px;
+  border-top: 4px solid #222;
+  border-left: 4px solid #222;
+  background: rgba(255,255,255,0.92);
+}
+
+.number-box::after {
+  content: '';
+  position: absolute;
+  bottom: -12px; right: -12px;
+  width: 20px; height: 20px;
+  border-bottom: 4px solid #222;
+  border-right: 4px solid #222;
+  background: rgba(255,255,255,0.92);
+}
+
+.number-box--danger,
+.number-box--danger::before,
+.number-box--danger::after {
+  border-color: #FF4444;
+}
+
+.number-box--danger {
+  box-shadow: 6px 6px 0 #FF4444;
+}
+
+.number-box--go {
+  border-color: #FF4444;
+  box-shadow: 6px 6px 0 #FF4444;
+}
+
+.count-number {
+  font-size: 140px;
+  font-weight: bold;
+  color: #222;
+  letter-spacing: -6px;
+  line-height: 1;
+  text-shadow: 4px 4px 0 rgba(0,0,0,0.12);
+  animation: numberPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.number-box--danger .count-number {
+  color: #FF4444;
+}
+
+@keyframes numberPop {
+  0%   { transform: scale(1.8) rotate(-5deg); opacity: 0; }
+  60%  { transform: scale(0.92) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.go-text {
+  font-size: 90px;
+  font-weight: bold;
+  color: #FF4444;
+  letter-spacing: -3px;
+  line-height: 1;
+  text-shadow: 5px 5px 0 rgba(255,68,68,0.2);
+  animation: goPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes goPop {
+  0%   { transform: scale(0.4) rotate(8deg); opacity: 0; }
+  70%  { transform: scale(1.1) rotate(-3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.cd-msg {
+  margin-top: 28px;
+  text-align: center;
+  background: rgba(255,255,255,0.85);
+  padding: 8px 18px;
+  border: 2px solid #222;
+}
+
+.msg-main {
+  font-size: 16px;
+  font-weight: bold;
+  color: #222;
+  margin-bottom: 6px;
+}
+
+.msg-sub {
+  font-size: 12px;
+  color: #777;
+}

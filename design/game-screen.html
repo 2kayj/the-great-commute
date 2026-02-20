@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=390, initial-scale=1.0" />
+  <title>오피스 신입 새 - 게임 플레이</title>
+  <style>
+    :root {
+      --bg:     #FFFFFF;
+      --line:   #222222;
+      --ground: #888888;
+      --danger: #FF4444;
+      --gold:   #FFD700;
+      --text:   #333333;
+      --coffee: #8B5E3C;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #CCCCCC;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Comic Sans MS', 'Comic Sans', 'Chalkboard SE', cursive;
+    }
+
+    .phone-frame {
+      width: 390px;
+      height: 844px;
+      background: #FFFFFF;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      border: 3px solid var(--line);
+      box-shadow: 6px 6px 0 #000;
+    }
+
+    /* ── 흰 배경 (순수 흰색) ── */
+    .bg-white {
+      position: absolute;
+      inset: 0;
+      background: #FFFFFF;
+    }
+
+    /* ── 구름 레이어 (천천히 흐름) ── */
+    .clouds-scroll {
+      position: absolute;
+      top: 60px;
+      left: 0;
+      width: 800px;
+      height: 80px;
+      z-index: 2;
+      animation: scrollLeft 18s linear infinite;
+    }
+    @keyframes scrollLeft {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-390px); }
+    }
+
+    /* ── 빌딩 레이어 (패럴랙스 near - 빠름) ── */
+    .buildings-near {
+      position: absolute;
+      bottom: 120px;
+      left: 0;
+      width: 900px;
+      height: 260px;
+      z-index: 4;
+      animation: buildingNear 3.5s linear infinite;
+    }
+    @keyframes buildingNear {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-450px); }
+    }
+
+    /* ── 빌딩 레이어 (패럴랙스 far - 느림) ── */
+    .buildings-far {
+      position: absolute;
+      bottom: 120px;
+      left: 0;
+      width: 900px;
+      height: 180px;
+      z-index: 3;
+      opacity: 0.4;
+      animation: buildingFar 7s linear infinite;
+    }
+    @keyframes buildingFar {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-450px); }
+    }
+
+    /* ── 지면 ── */
+    .ground-layer {
+      position: absolute;
+      bottom: 100px;
+      left: 0;
+      right: 0;
+      height: 20px;
+      z-index: 6;
+    }
+    .ground-line-main {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--line);
+    }
+    .ground-fill {
+      position: absolute;
+      top: 3px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--ground);
+    }
+    /* 보도블록 선 */
+    .ground-fill::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent 0px, transparent 36px,
+        rgba(0,0,0,0.2) 36px, rgba(0,0,0,0.2) 38px
+      );
+    }
+
+    /* ── HUD 상단 ── */
+    .hud-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      padding: 16px 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid var(--line);
+      background: rgba(255,255,255,0.92);
+    }
+
+    .hud-pause-btn {
+      width: 36px;
+      height: 36px;
+      border: 2px solid var(--line);
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      gap: 4px;
+      box-shadow: 2px 2px 0 var(--line);
+    }
+    .pause-bar {
+      width: 4px;
+      height: 16px;
+      background: var(--line);
+    }
+
+    .hud-distance {
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+    }
+    .distance-num {
+      font-size: 36px;
+      font-weight: bold;
+      color: var(--line);
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+    .distance-unit {
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--text);
+    }
+
+    .hud-best {
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--text);
+      border: 2px solid var(--line);
+      padding: 4px 8px;
+      background: white;
+    }
+
+    /* ── 캐릭터 ── */
+    .character-wrap {
+      position: absolute;
+      bottom: 118px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      transform-origin: bottom center;
+    }
+
+    /* 기울기 애니메이션 (좌우 휘청) */
+    @keyframes charTilt {
+      0%   { transform: translateX(-50%) rotate(0deg); }
+      18%  { transform: translateX(-50%) rotate(-6deg); }
+      40%  { transform: translateX(-50%) rotate(4deg); }
+      62%  { transform: translateX(-50%) rotate(-5deg); }
+      82%  { transform: translateX(-50%) rotate(3deg); }
+      100% { transform: translateX(-50%) rotate(0deg); }
+    }
+
+    .character-wrap {
+      animation: charTilt 2.6s ease-in-out infinite;
+    }
+
+    /* ── 균형 HUD (하단) ── */
+    .balance-hud {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      background: white;
+      border-top: 3px solid var(--line);
+      padding: 12px 20px 20px;
+    }
+
+    .balance-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .balance-label {
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--line);
+    }
+
+    .balance-status {
+      font-size: 12px;
+      font-weight: bold;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #333;
+      border: 1.5px solid var(--line);
+      animation: dotBlink 1s ease-in-out infinite;
+    }
+    @keyframes dotBlink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+
+    /* 균형 바 (선 + 점 스타일) */
+    .balance-bar-wrap {
+      position: relative;
+      height: 20px;
+      border: 2px solid var(--line);
+      background: #F5F5F5;
+      margin-bottom: 10px;
+    }
+
+    /* 안전 구간 표시 (해칭 패턴) */
+    .balance-safe-zone {
+      position: absolute;
+      left: 30%;
+      width: 40%;
+      top: 0;
+      bottom: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 3px,
+        rgba(0,0,0,0.08) 3px,
+        rgba(0,0,0,0.08) 4px
+      );
+      border-left: 2px dashed var(--line);
+      border-right: 2px dashed var(--line);
+    }
+
+    /* 마커 (동그란 점) */
+    .balance-marker {
+      position: absolute;
+      top: 50%;
+      left: 52%;
+      transform: translate(-50%, -50%);
+      width: 18px;
+      height: 18px;
+      background: white;
+      border: 2.5px solid var(--line);
+      border-radius: 50%;
+      z-index: 2;
+      box-shadow: 2px 2px 0 var(--line);
+      animation: markerWobble 2.6s ease-in-out infinite;
+    }
+
+    @keyframes markerWobble {
+      0%   { left: 48%; }
+      25%  { left: 40%; }
+      55%  { left: 58%; }
+      80%  { left: 44%; }
+      100% { left: 48%; }
+    }
+
+    /* 중앙 기준선 */
+    .balance-center {
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 28px;
+      background: var(--line);
+    }
+
+    /* 스탯 하단 */
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: #888;
+      font-weight: bold;
+      display: block;
+    }
+
+    .stat-value {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--line);
+    }
+
+    /* ── 위험 오버레이 ── */
+    .danger-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      border: 4px solid var(--danger);
+      border-radius: 40px;
+      z-index: 18;
+      pointer-events: none;
+      animation: dangerFlash 0.25s ease-in-out infinite alternate;
+    }
+    @keyframes dangerFlash {
+      0%   { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    /* 터치 힌트 */
+    .touch-hint {
+      position: absolute;
+      bottom: 130px;
+      z-index: 8;
+      opacity: 0.35;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .touch-hint.left  { left: 20px; }
+    .touch-hint.right { right: 20px; }
+
+    .touch-arrow-box {
+      width: 36px;
+      height: 36px;
+      border: 2px solid var(--line);
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--line);
+      box-shadow: 2px 2px 0 var(--line);
+    }
+
+    .touch-label {
+      font-size: 10px;
+      font-weight: bold;
+      color: var(--line);
+    }
+  </style>
+</head>
+<body>
+
+<div class="phone-frame">
+
+  <!-- 흰 배경 -->
+  <div class="bg-white"></div>
+
+  <!-- 구름 레이어 -->
+  <div class="clouds-scroll">
+    <svg width="800" height="80" viewBox="0 0 800 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- 구름들 -->
+      <path d="M 30 60 Q 25 48 36 46 Q 34 35 46 37 Q 48 28 60 32 Q 68 25 74 33 Q 85 29 85 42 Q 91 44 88 56 Z"
+            stroke="#222" stroke-width="2" fill="white"/>
+      <path d="M 180 55 Q 176 45 184 43 Q 183 34 191 36 Q 193 29 200 32 Q 205 27 210 33 Q 218 30 218 40 Q 222 42 220 52 Z"
+            stroke="#222" stroke-width="1.5" fill="white"/>
+      <path d="M 320 50 Q 316 40 325 38 Q 323 29 333 31 Q 335 24 344 28 Q 350 23 355 30 Q 363 27 363 38 Q 367 40 365 49 Z"
+            stroke="#222" stroke-width="2" fill="white"/>
+      <path d="M 480 58 Q 476 47 486 45 Q 484 36 494 38 Q 496 30 505 34 Q 511 28 517 35 Q 525 32 525 43 Q 529 45 527 55 Z"
+            stroke="#222" stroke-width="1.5" fill="white"/>
+      <path d="M 620 52 Q 616 43 624 41 Q 622 33 631 35 Q 633 28 641 31 Q 646 26 651 32 Q 659 30 659 40 Q 663 42 661 51 Z"
+            stroke="#222" stroke-width="2" fill="white"/>
+      <path d="M 730 60 Q 725 48 736 46 Q 734 35 746 37 Q 748 28 760 32 Q 768 25 774 33 Q 785 29 785 42 Q 791 44 788 56 Z"
+            stroke="#222" stroke-width="2" fill="white"/>
+    </svg>
+  </div>
+
+  <!-- 원거리 빌딩 (흐리게) -->
+  <div class="buildings-far">
+    <svg width="900" height="180" viewBox="0 0 900 180" fill="white" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0"   y="60" width="35" height="120" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="40"  y="20" width="45" height="160" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="90"  y="45" width="38" height="135" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="133" y="10" width="55" height="170" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="193" y="40" width="40" height="140" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="238" y="25" width="50" height="155" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="293" y="55" width="33" height="125" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="331" y="15" width="48" height="165" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="384" y="38" width="42" height="142" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="431" y="8"  width="58" height="172" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="494" y="50" width="36" height="130" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="535" y="22" width="46" height="158" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="586" y="42" width="40" height="138" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="631" y="12" width="52" height="168" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="688" y="35" width="38" height="145" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="731" y="0"  width="60" height="180" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="796" y="48" width="44" height="132" fill="white" stroke="#222" stroke-width="1.5"/>
+      <rect x="845" y="18" width="50" height="162" fill="white" stroke="#222" stroke-width="1.5"/>
+    </svg>
+  </div>
+
+  <!-- 근거리 빌딩 (창문 포함) -->
+  <div class="buildings-near">
+    <svg width="900" height="260" viewBox="0 0 900 260" fill="white" xmlns="http://www.w3.org/2000/svg">
+      <!-- 빌딩 세트 A (0~450 구간) -->
+      <rect x="0"   y="80" width="58" height="180" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="6"   y="88" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="20"  y="88" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="34"  y="88" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="48"  y="88" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="6"   y="104" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="20"  y="104" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="34"  y="104" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="48"  y="104" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="6"   y="120" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="20"  y="120" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="34"  y="120" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="48"  y="120" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="63"  y="30" width="70" height="230" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="70"  y="42" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="86"  y="42" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="102" y="42" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="118" y="42" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="70"  y="60" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="86"  y="60" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="102" y="60" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="118" y="60" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="70"  y="78" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="86"  y="78" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="102" y="78" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="118" y="78" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <!-- 안테나 -->
+      <line x1="98" y1="30" x2="98" y2="14" stroke="#222" stroke-width="2"/>
+      <circle cx="98" cy="11" r="4" fill="white" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="138" y="60" width="50" height="200" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="145" y="70" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="159" y="70" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="173" y="70" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="145" y="86" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="159" y="86" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="173" y="86" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="145" y="102" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="159" y="102" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="173" y="102" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="193" y="100" width="44" height="160" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="200" y="110" width="9" height="9" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="213" y="110" width="9" height="9" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="226" y="110" width="9" height="9" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="200" y="124" width="9" height="9" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="213" y="124" width="9" height="9" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="226" y="124" width="9" height="9" fill="none" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="242" y="50" width="62" height="210" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="250" y="62" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="265" y="62" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="280" y="62" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="295" y="62" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="250" y="79" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="265" y="79" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="280" y="79" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="295" y="79" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="250" y="96" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="265" y="96" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="280" y="96" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="295" y="96" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <!-- 물탱크 -->
+      <rect x="260" y="38" width="26" height="14" fill="white" stroke="#222" stroke-width="1.5"/>
+      <line x1="266" y1="38" x2="266" y2="35" stroke="#222" stroke-width="1.5"/>
+      <line x1="278" y1="38" x2="278" y2="35" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="309" y="75" width="48" height="185" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="316" y="85" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="330" y="85" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="344" y="85" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="316" y="100" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="330" y="100" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="344" y="100" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="362" y="40" width="55" height="220" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="370" y="52" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="385" y="52" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="400" y="52" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="370" y="69" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="385" y="69" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="400" y="69" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <!-- 안테나 -->
+      <line x1="389" y1="40" x2="389" y2="22" stroke="#222" stroke-width="2"/>
+      <line x1="385" y1="28" x2="393" y2="22" stroke="#222" stroke-width="1.5"/>
+
+      <!-- 빌딩 세트 B (450~900 구간, 반복용) -->
+      <rect x="450" y="80" width="58" height="180" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="456" y="88" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="470" y="88" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="484" y="88" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="498" y="88" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="456" y="104" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="470" y="104" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="484" y="104" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="498" y="104" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="513" y="30" width="70" height="230" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="520" y="42" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="536" y="42" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="552" y="42" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="568" y="42" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="520" y="60" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="536" y="60" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="552" y="60" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="568" y="60" width="12" height="12" fill="none" stroke="#222" stroke-width="1.5"/>
+      <line x1="548" y1="30" x2="548" y2="14" stroke="#222" stroke-width="2"/>
+      <circle cx="548" cy="11" r="4" fill="white" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="588" y="60" width="50" height="200" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="595" y="70" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="609" y="70" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="623" y="70" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="643" y="50" width="62" height="210" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="650" y="62" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="665" y="62" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="680" y="62" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="695" y="62" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="650" y="79" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="665" y="79" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="680" y="79" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="695" y="79" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="710" y="38" width="26" height="14" fill="white" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="759" y="40" width="55" height="220" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="767" y="52" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="782" y="52" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="797" y="52" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="767" y="69" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="782" y="69" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="797" y="69" width="11" height="11" fill="none" stroke="#222" stroke-width="1.5"/>
+      <line x1="786" y1="40" x2="786" y2="22" stroke="#222" stroke-width="2"/>
+      <line x1="782" y1="28" x2="790" y2="22" stroke="#222" stroke-width="1.5"/>
+
+      <rect x="819" y="75" width="48" height="185" fill="white" stroke="#222" stroke-width="2"/>
+      <rect x="826" y="85" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="840" y="85" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+      <rect x="854" y="85" width="10" height="10" fill="none" stroke="#222" stroke-width="1.5"/>
+    </svg>
+  </div>
+
+  <!-- 지면 -->
+  <div class="ground-layer">
+    <div class="ground-line-main"></div>
+    <div class="ground-fill"></div>
+  </div>
+
+  <!-- HUD 상단 -->
+  <div class="hud-top">
+    <div class="hud-pause-btn">
+      <div class="pause-bar"></div>
+      <div class="pause-bar"></div>
+    </div>
+
+    <div class="hud-distance">
+      <span class="distance-num" id="distanceNum">142</span>
+      <span class="distance-unit">m</span>
+    </div>
+
+    <div class="hud-best">Best: 247m</div>
+  </div>
+
+  <!-- 터치 힌트 좌 -->
+  <div class="touch-hint left">
+    <div class="touch-arrow-box">←</div>
+    <span class="touch-label">LEFT</span>
+  </div>
+
+  <!-- 터치 힌트 우 -->
+  <div class="touch-hint right">
+    <div class="touch-arrow-box">→</div>
+    <span class="touch-label">RIGHT</span>
+  </div>
+
+  <!-- 캐릭터 (SVG 스틱맨) -->
+  <div class="character-wrap">
+    <svg id="gameChar" width="68" height="140" viewBox="0 0 68 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- 왼 다리 (걷기 애니메이션) -->
+      <line id="gLegL" x1="28" y1="88" x2="16" y2="128" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+      <!-- 오른 다리 -->
+      <line id="gLegR" x1="40" y1="88" x2="52" y2="128" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+      <!-- 왼발 -->
+      <line x1="16" y1="128" x2="7"  y2="133" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="16" y1="128" x2="16" y2="135" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 오른발 -->
+      <line x1="52" y1="128" x2="61" y2="133" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="52" y1="128" x2="52" y2="135" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+
+      <!-- 몸통 -->
+      <ellipse cx="34" cy="74" rx="17" ry="16" fill="white" stroke="#222" stroke-width="2.5"/>
+      <!-- 넥타이 -->
+      <polygon points="34,64 37,73 31,73" fill="#333" stroke="#222" stroke-width="1"/>
+
+      <!-- 목 -->
+      <line x1="34" y1="58" x2="34" y2="64" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+
+      <!-- 머리 -->
+      <circle cx="34" cy="50" r="13" fill="white" stroke="#222" stroke-width="2.5"/>
+      <!-- 눈 -->
+      <circle cx="29" cy="47" r="2" fill="#222"/>
+      <circle cx="39" cy="47" r="2" fill="#222"/>
+      <!-- 부리 -->
+      <polygon points="34,52 30,56 38,56" fill="#FFD700" stroke="#222" stroke-width="1.5"/>
+
+      <!-- 왼팔 -->
+      <line id="gArmL" x1="18" y1="70" x2="6"  y2="82" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 오른팔 + 트레이 -->
+      <line id="gArmR" x1="50" y1="70" x2="62" y2="63" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 트레이 -->
+      <line x1="57" y1="60" x2="70" y2="60" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 컵1 -->
+      <rect x="57" y="52" width="5" height="8" fill="white" stroke="#222" stroke-width="1.5" rx="0.5"/>
+      <rect x="57" y="52" width="5" height="3" fill="#8B5E3C" stroke="none"/>
+      <!-- 컵2 -->
+      <rect x="64" y="52" width="5" height="8" fill="white" stroke="#222" stroke-width="1.5" rx="0.5"/>
+      <rect x="64" y="52" width="5" height="3" fill="#8B5E3C" stroke="none"/>
+    </svg>
+  </div>
+
+  <!-- 위험 오버레이 -->
+  <div class="danger-overlay" id="dangerOverlay"></div>
+
+  <!-- 균형 HUD 하단 -->
+  <div class="balance-hud">
+    <div class="balance-label-row">
+      <span class="balance-label">균형 게이지</span>
+      <span class="balance-status">
+        <span class="status-dot"></span>
+        균형 유지 중
+      </span>
+    </div>
+
+    <div class="balance-bar-wrap">
+      <div class="balance-safe-zone"></div>
+      <div class="balance-center"></div>
+      <div class="balance-marker" id="balanceMarker"></div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-item">
+        <span class="stat-label">현재</span>
+        <span class="stat-value" id="currentDist">142m</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">속도</span>
+        <span class="stat-value">1.4x</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">최고</span>
+        <span class="stat-value">247m</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone-frame -->
+
+<style>
+  /* 걷기 애니메이션 */
+  @keyframes gLegLSwing {
+    0%   { transform-origin: 28px 88px; transform: rotate(-20deg); }
+    50%  { transform-origin: 28px 88px; transform: rotate(18deg); }
+    100% { transform-origin: 28px 88px; transform: rotate(-20deg); }
+  }
+  @keyframes gLegRSwing {
+    0%   { transform-origin: 40px 88px; transform: rotate(18deg); }
+    50%  { transform-origin: 40px 88px; transform: rotate(-20deg); }
+    100% { transform-origin: 40px 88px; transform: rotate(18deg); }
+  }
+  @keyframes gArmLSway {
+    0%   { transform-origin: 18px 70px; transform: rotate(14deg); }
+    50%  { transform-origin: 18px 70px; transform: rotate(-10deg); }
+    100% { transform-origin: 18px 70px; transform: rotate(14deg); }
+  }
+  @keyframes gArmRSway {
+    0%   { transform-origin: 50px 70px; transform: rotate(-10deg); }
+    50%  { transform-origin: 50px 70px; transform: rotate(12deg); }
+    100% { transform-origin: 50px 70px; transform: rotate(-10deg); }
+  }
+
+  #gLegL { animation: gLegLSwing 0.5s ease-in-out infinite; }
+  #gLegR { animation: gLegRSwing 0.5s ease-in-out infinite; }
+  #gArmL { animation: gArmLSway 0.5s ease-in-out infinite; }
+  #gArmR { animation: gArmRSway 0.5s ease-in-out infinite; }
+</style>
+
+<script>
+  let dist = 142;
+  setInterval(() => {
+    dist++;
+    document.getElementById('distanceNum').textContent = dist;
+    document.getElementById('currentDist').textContent = dist + 'm';
+  }, 300);
+</script>
+
+</body>
+</html>
