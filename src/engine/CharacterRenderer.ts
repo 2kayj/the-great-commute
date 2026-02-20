@@ -7,8 +7,6 @@ export class CharacterRenderer {
   private rightArm: VerletChain;
   private leftLeg: VerletChain;
   private rightLeg: VerletChain;
-  private neck: VerletChain;
-
   private time: number = 0;
 
   // Body dimensions
@@ -30,7 +28,7 @@ export class CharacterRenderer {
     this.rightArm = new VerletChain(4, 10, 0.3, 0.96);
     this.leftLeg  = new VerletChain(5, 17, 0.4, 0.92, 1, 4);
     this.rightLeg = new VerletChain(5, 17, 0.4, 0.92, 1, 4);
-    this.neck     = new VerletChain(3, 5, 0.12, 0.985, -1);
+    // neck is now rendered as a fixed line — no VerletChain needed
 
     // Give each limb a small random initial velocity so they start
     // in motion rather than frozen. Verlet velocity = (pos - prevPos),
@@ -40,7 +38,6 @@ export class CharacterRenderer {
     this.applyInitialJitter(this.rightArm.nodes, 2, 5);
     this.applyInitialJitter(this.leftLeg.nodes,  4, 8);
     this.applyInitialJitter(this.rightLeg.nodes, 4, 8);
-    this.applyInitialJitter(this.neck.nodes,     1, 2);
   }
 
   /**
@@ -149,10 +146,7 @@ export class CharacterRenderer {
     this.leftLeg.update(leftLegAnchorX, leftLegAnchorY);
     this.rightLeg.update(rightLegAnchorX, rightLegAnchorY);
 
-    // Neck
-    const neckBaseX = bx;
-    const neckBaseY = by - 2;
-    this.neck.update(neckBaseX, neckBaseY);
+    // Neck: no Verlet update — neck is fixed to body top, head wobbles separately
   }
 
   render(
@@ -226,16 +220,25 @@ export class CharacterRenderer {
     this.rightArm.render(ctx, 2.5, 1.5, COLORS.line);
     this.renderCoffeeTray(ctx);
 
-    // Neck chain
-    this.neck.render(ctx, 2.5, 2, COLORS.line);
+    // Neck — fixed straight line from body top upward (no Verlet physics)
+    const neckBaseX = bx;
+    const neckBaseY = by - 2;
+    const neckTopX = neckBaseX;
+    const neckTopY = neckBaseY - this.neckLen;
 
-    // Head
-    const headX = this.neck.nodes.length > 0
-      ? this.neck.nodes[this.neck.nodes.length - 1].x
-      : bx;
-    const headY = this.neck.nodes.length > 0
-      ? this.neck.nodes[this.neck.nodes.length - 1].y
-      : by - this.neckLen;
+    ctx.save();
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(neckBaseX, neckBaseY);
+    ctx.lineTo(neckTopX, neckTopY);
+    ctx.stroke();
+    ctx.restore();
+
+    // Head — neck top is the anchor; head circle wobbles around that point
+    const headX = neckTopX + wobbleOffset(10, t, 2);
+    const headY = neckTopY - this.headR + wobbleOffset(11, t, 1.5);
 
     this.renderHead(ctx, headX, headY, false);
 
@@ -256,17 +259,13 @@ export class CharacterRenderer {
     ctx.fillStyle = COLORS.bg;
     ctx.lineWidth = 2.5;
 
-    // Head circle — wobble only when not fallen
+    // Head circle — x/y already include wobble offset supplied by caller when not fallen
     ctx.beginPath();
-    if (fallen) {
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-    } else {
-      ctx.arc(x + wobbleOffset(10, t, 1), y + wobbleOffset(11, t, 1), r, 0, Math.PI * 2);
-    }
+    ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    // Eyes — wobble when walking, static when fallen. Always normal dot eyes (never XX)
+    // Eyes — slight independent wobble when walking, static when fallen
     const eyeWobbleX = fallen ? 0 : wobbleOffset(12, t, 0.5);
     const eyeWobbleX2 = fallen ? 0 : wobbleOffset(13, t, 0.5);
     ctx.fillStyle = COLORS.line;
@@ -469,8 +468,8 @@ export class CharacterRenderer {
     ctx.lineTo(bx, headY);
     ctx.stroke();
 
-    // Head with normal expression
-    this.renderHead(ctx, bx, headY - this.headR, false);
+    // Head — fixed position, no wobble during fall animation
+    this.renderHead(ctx, bx, headY - this.headR, true);
   }
 
   /**
