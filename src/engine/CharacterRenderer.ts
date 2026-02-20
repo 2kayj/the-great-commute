@@ -28,18 +28,18 @@ export class CharacterRenderer {
   constructor() {
     this.leftArm  = new VerletChain(4, 10, 0.3, 0.96);
     this.rightArm = new VerletChain(4, 10, 0.3, 0.96);
-    this.leftLeg  = new VerletChain(5, 17, 0.55, 0.89, 1, 3);
-    this.rightLeg = new VerletChain(5, 17, 0.55, 0.89, 1, 3);
+    this.leftLeg  = new VerletChain(5, 17, 0.4, 0.92, 1, 4);
+    this.rightLeg = new VerletChain(5, 17, 0.4, 0.92, 1, 4);
     this.neck     = new VerletChain(3, 5, 0.12, 0.985, -1);
 
     // Give each limb a small random initial velocity so they start
     // in motion rather than frozen. Verlet velocity = (pos - prevPos),
     // so shifting prevPos by a small offset produces an immediate impulse.
     // Anchor node (index 0) is left untouched — only free nodes get the kick.
-    this.applyInitialJitter(this.leftArm.nodes,  2, 3);
-    this.applyInitialJitter(this.rightArm.nodes, 2, 3);
-    this.applyInitialJitter(this.leftLeg.nodes,  2, 4);
-    this.applyInitialJitter(this.rightLeg.nodes, 2, 4);
+    this.applyInitialJitter(this.leftArm.nodes,  2, 5);
+    this.applyInitialJitter(this.rightArm.nodes, 2, 5);
+    this.applyInitialJitter(this.leftLeg.nodes,  4, 8);
+    this.applyInitialJitter(this.rightLeg.nodes, 4, 8);
     this.applyInitialJitter(this.neck.nodes,     1, 2);
   }
 
@@ -140,7 +140,7 @@ export class CharacterRenderer {
     const leftHipX  = bx - hipXRadius * 0.5;
     const rightHipX = bx + hipXRadius * 0.5;
 
-    const hipSwing = Math.sin(walkPhase) * 6;
+    const hipSwing = Math.sin(walkPhase) * 12;
     const leftLegAnchorX  = leftHipX  - hipSwing;
     const leftLegAnchorY  = hipY;
     const rightLegAnchorX = rightHipX + hipSwing;
@@ -480,6 +480,25 @@ export class CharacterRenderer {
    */
   private easeOutBack(t: number): number {
     return 1 - Math.pow(1 - t, 4);
+  }
+
+  /**
+   * Runs the physics simulation for a given number of frames at a fixed delta
+   * time without requiring an external game loop. Call this immediately after
+   * construction to bring the chain into a natural walking pose before the
+   * first rendered frame.
+   *
+   * @param centerX  Character X position (CHARACTER_X constant)
+   * @param groundY  Ground Y position (GROUND_Y constant)
+   * @param frames   Number of physics steps to pre-simulate (default 120 ≈ 2s at 60fps)
+   */
+  warmUp(centerX: number, groundY: number, frames: number = 120): void {
+    const dt = 1 / 60;
+    for (let i = 0; i < frames; i++) {
+      this.time += dt;
+      const phase = this.time * 2.2;
+      this.update(centerX, groundY, phase, 0, dt, false);
+    }
   }
 
   getTipPosition(): { x: number; y: number } {

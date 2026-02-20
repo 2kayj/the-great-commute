@@ -1,0 +1,238 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1932 828" width="1932" height="828" fill="none">
+
+  <!--
+    The Great Commute - Thumbnail (Light)
+    1932x828px | Landscape Banner
+    Background: #FFE14D
+  -->
+
+  <!-- ── Background ── -->
+  <rect x="0" y="0" width="1932" height="828" fill="#FFE14D"/>
+
+  <!-- ── Decoration: dashed lines ── -->
+  <line x1="0" y1="40" x2="1932" y2="40" stroke="#E8C800" stroke-width="4" stroke-dasharray="20,16"/>
+  <line x1="0" y1="788" x2="1932" y2="788" stroke="#E8C800" stroke-width="4" stroke-dasharray="20,16"/>
+
+  <!-- ── Character Group (left side, scale=1.15) ── -->
+  <g transform="translate(414, 414) scale(1.15) translate(-300,-283)">
+
+    <!-- Motion lines (under legs) -->
+    <line x1="200" y1="470" x2="160" y2="470" stroke="#BBBBBB" stroke-width="6" stroke-linecap="round"/>
+    <line x1="195" y1="490" x2="148" y2="490" stroke="#BBBBBB" stroke-width="5" stroke-linecap="round"/>
+    <line x1="202" y1="510" x2="158" y2="510" stroke="#BBBBBB" stroke-width="4" stroke-linecap="round"/>
+    <!-- Motion lines (right side) -->
+    <line x1="395" y1="470" x2="435" y2="470" stroke="#BBBBBB" stroke-width="6" stroke-linecap="round"/>
+    <line x1="400" y1="490" x2="447" y2="490" stroke="#BBBBBB" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- Legs -->
+    <path d="M265 289 Q233 369 241 490" stroke="#1A1A1A" stroke-width="12" stroke-linecap="round" fill="none"/>
+    <path d="M335 289 Q367 369 359 490" stroke="#1A1A1A" stroke-width="12" stroke-linecap="round" fill="none"/>
+
+    <!-- Body ellipse -->
+    <ellipse cx="300" cy="246" rx="88" ry="72" fill="#F5F0E8" stroke="#1A1A1A" stroke-width="10"/>
+
+    <!-- Tie -->
+    <path d="M300 214 L316 262 L284 262 Z" fill="#CC3333" stroke="#1A1A1A" stroke-width="4" stroke-linejoin="round"/>
+
+    <!-- Left arm -->
+    <path d="M228 210 Q196 282 212 362" stroke="#1A1A1A" stroke-width="10" stroke-linecap="round" fill="none"/>
+
+    <!-- Right arm (coffee tray) -->
+    <path d="M372 210 Q410 230 430 250" stroke="#1A1A1A" stroke-width="10" stroke-linecap="round" fill="none"/>
+
+    <!-- Coffee tray -->
+    <path d="M394 250 Q430 246 466 250" stroke="#1A1A1A" stroke-width="12" stroke-linecap="round" fill="none"/>
+    <!-- Cup 1 -->
+    <rect x="382" y="206" width="32" height="44" fill="#FFE14D" stroke="#1A1A1A" stroke-width="6"/>
+    <rect x="382" y="206" width="32" height="16" rx="2" fill="#8B5E3C"/>
+    <!-- Cup 2 -->
+    <rect x="422" y="206" width="32" height="44" fill="#FFE14D" stroke="#1A1A1A" stroke-width="6"/>
+    <rect x="422" y="206" width="32" height="16" rx="2" fill="#8B5E3C"/>
+
+    <!-- Neck -->
+    <path d="M300 172 Q304 156 300 132" stroke="#1A1A1A" stroke-width="10" stroke-linecap="round" fill="none"/>
+
+    <!-- Head -->
+    <circle cx="300" cy="76" r="56" fill="#F5F0E8" stroke="#1A1A1A" stroke-width="10"/>
+
+    <!-- Eyes -->
+    <circle cx="280" cy="64" r="8" fill="#1A1A1A"/>
+    <circle cx="320" cy="64" r="8" fill="#1A1A1A"/>
+
+    <!-- Beak -->
+    <path d="M300 92 L280 116 L320 116 Z" fill="#FFD700" stroke="#1A1A1A" stroke-width="6" stroke-linejoin="round"/>
+
+    <!-- Sweat drops -->
+    <path d="M232 30 Q226 42 232 50 Q238 42 232 30 Z" fill="#88BBFF" stroke="#1A1A1A" stroke-width="3"/>
+    <path d="M210 50 Q205 60 210 67 Q215 60 210 50 Z" fill="#88BBFF" stroke="#1A1A1A" stroke-width="3"/>
+
+    <!-- Exclamation marks !! -->
+    <rect x="368" y="10" width="10" height="38" rx="5" fill="#CC3333" stroke="#1A1A1A" stroke-width="3"/>
+    <circle cx="373" cy="62" r="7" fill="#CC3333" stroke="#1A1A1A" stroke-width="3"/>
+    <rect x="388" y="18" width="10" height="30" rx="5" fill="#CC3333" stroke="#1A1A1A" stroke-width="3"/>
+    <circle cx="393" cy="62" r="7" fill="#CC3333" stroke="#1A1A1A" stroke-width="3"/>
+
+  </g>
+
+  <!-- ── Left star decoration ── -->
+  <path d="M80 160 L87 181 L110 181 L92 194 L99 215 L80 202 L61 215 L68 194 L50 181 L73 181 Z"
+    fill="#FFCC00" stroke="#1A1A1A" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M60 600 L65 615 L82 615 L69 624 L74 639 L60 630 L46 639 L51 624 L38 615 L55 615 Z"
+    fill="#FFCC00" stroke="#1A1A1A" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- ── Buildings (center-right area) ── -->
+  <!-- Ground line -->
+  <path d="M750 720 Q900 716 1050 719 Q1200 722 1350 718 Q1500 715 1650 720 Q1800 724 1932 718"
+    stroke="#222222" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- Ground fill -->
+  <path d="M750 720 Q900 716 1050 719 Q1200 722 1350 718 Q1500 715 1650 720 Q1800 724 1932 718 L1932 828 L750 828 Z"
+    fill="#F0D840" stroke="none"/>
+
+  <!-- Building 1: tall, center-left (x~860, width~160, height~440) -->
+  <path d="
+    M862 720
+    C 858 600, 854 480, 857 280
+    C 920 274, 960 278, 1018 280
+    C 1021 380, 1019 500, 1022 720
+    Z"
+    fill="#FFFFFF" stroke="#222222" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Antenna on building 1 -->
+  <path d="M938 280 Q941 250 939 230 Q942 215 940 200"
+    stroke="#222222" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="940" cy="197" r="5" fill="#FFFFFF" stroke="#222222" stroke-width="2.5"/>
+  <!-- Windows building 1 -->
+  <rect x="877" y="310" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.5, 877, 310)"/>
+  <rect x="915" y="308" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.3, 915, 308)"/>
+  <rect x="970" y="311" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.7, 970, 311)"/>
+  <rect x="877" y="360" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.4, 877, 360)"/>
+  <rect x="915" y="358" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.3, 915, 358)"/>
+  <rect x="970" y="361" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.6, 970, 361)"/>
+  <rect x="877" y="410" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.2, 877, 410)"/>
+  <rect x="915" y="408" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.5, 915, 408)"/>
+  <rect x="970" y="411" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.4, 970, 411)"/>
+  <rect x="877" y="460" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.3, 877, 460)"/>
+  <rect x="915" y="458" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.6, 915, 458)"/>
+  <rect x="970" y="461" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.2, 970, 461)"/>
+  <rect x="877" y="510" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.4, 877, 510)"/>
+  <rect x="915" y="508" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.3, 915, 508)"/>
+  <rect x="970" y="511" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.5, 970, 511)"/>
+  <rect x="877" y="560" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.2, 877, 560)"/>
+  <rect x="915" y="558" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.3, 915, 558)"/>
+  <rect x="970" y="561" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.5, 970, 561)"/>
+  <rect x="877" y="610" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.3, 877, 610)"/>
+  <rect x="915" y="608" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.4, 915, 608)"/>
+  <rect x="970" y="611" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.2, 970, 611)"/>
+  <rect x="877" y="660" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.5, 877, 660)"/>
+  <rect x="915" y="658" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.4, 915, 658)"/>
+  <rect x="970" y="661" width="28" height="32" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.3, 970, 661)"/>
+
+  <!-- Building 2: short-wide, far right background (x~1100, width~190, height~250) -->
+  <path d="
+    M1102 720
+    C 1098 660, 1095 560, 1099 470
+    C 1165 464, 1220 468, 1288 470
+    C 1291 560, 1289 640, 1292 720
+    Z"
+    fill="#FFFFFF" stroke="#222222" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Windows building 2 -->
+  <rect x="1117" y="498" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.6, 1117, 498)"/>
+  <rect x="1153" y="496" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.4, 1153, 496)"/>
+  <rect x="1190" y="499" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.3, 1190, 499)"/>
+  <rect x="1238" y="497" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.5, 1238, 497)"/>
+  <rect x="1117" y="540" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.3, 1117, 540)"/>
+  <rect x="1153" y="538" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.5, 1153, 538)"/>
+  <rect x="1190" y="541" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.4, 1190, 541)"/>
+  <rect x="1238" y="539" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.2, 1238, 539)"/>
+  <rect x="1117" y="582" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.4, 1117, 582)"/>
+  <rect x="1153" y="580" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.2, 1153, 580)"/>
+  <rect x="1190" y="583" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.5, 1190, 583)"/>
+  <rect x="1238" y="581" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.3, 1238, 581)"/>
+  <rect x="1117" y="624" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.5, 1117, 624)"/>
+  <rect x="1153" y="622" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.3, 1153, 622)"/>
+  <rect x="1190" y="625" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.4, 1190, 625)"/>
+  <rect x="1238" y="623" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.6, 1238, 623)"/>
+  <rect x="1117" y="666" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.2, 1117, 666)"/>
+  <rect x="1153" y="664" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.5, 1153, 664)"/>
+  <rect x="1190" y="667" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.3, 1190, 667)"/>
+  <rect x="1238" y="665" width="26" height="28" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.2, 1238, 665)"/>
+
+  <!-- Building 3: tallest, rightmost (x~1360, width~140, height~520) -->
+  <path d="
+    M1362 720
+    C 1358 580, 1355 420, 1359 200
+    C 1410 194, 1455 197, 1498 200
+    C 1501 340, 1499 520, 1502 720
+    Z"
+    fill="#FFFFFF" stroke="#222222" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Antenna on building 3 -->
+  <path d="M1430 200 Q1433 175 1431 155 Q1434 138 1432 120"
+    stroke="#222222" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="1432" cy="117" r="5" fill="#FFFFFF" stroke="#222222" stroke-width="2.5"/>
+  <!-- Windows building 3 -->
+  <rect x="1374" y="228" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.5, 1374, 228)"/>
+  <rect x="1408" y="226" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.4, 1408, 226)"/>
+  <rect x="1456" y="228" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.3, 1456, 228)"/>
+  <rect x="1374" y="266" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.6, 1374, 266)"/>
+  <rect x="1408" y="264" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.4, 1408, 264)"/>
+  <rect x="1456" y="266" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.2, 1456, 266)"/>
+  <rect x="1374" y="304" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.3, 1374, 304)"/>
+  <rect x="1408" y="302" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.5, 1408, 302)"/>
+  <rect x="1456" y="304" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.4, 1456, 304)"/>
+  <rect x="1374" y="342" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.3, 1374, 342)"/>
+  <rect x="1408" y="340" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.5, 1408, 340)"/>
+  <rect x="1456" y="342" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.4, 1456, 342)"/>
+  <rect x="1374" y="380" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.2, 1374, 380)"/>
+  <rect x="1408" y="378" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.4, 1408, 378)"/>
+  <rect x="1456" y="380" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.5, 1456, 380)"/>
+  <rect x="1374" y="418" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.5, 1374, 418)"/>
+  <rect x="1408" y="416" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.3, 1408, 416)"/>
+  <rect x="1456" y="418" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.2, 1456, 418)"/>
+  <rect x="1374" y="456" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.4, 1374, 456)"/>
+  <rect x="1408" y="454" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.6, 1408, 454)"/>
+  <rect x="1456" y="456" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.3, 1456, 456)"/>
+  <rect x="1374" y="494" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.3, 1374, 494)"/>
+  <rect x="1408" y="492" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.4, 1408, 492)"/>
+  <rect x="1456" y="494" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.5, 1456, 494)"/>
+  <rect x="1374" y="532" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.5, 1374, 532)"/>
+  <rect x="1408" y="530" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.3, 1408, 530)"/>
+  <rect x="1456" y="532" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.2, 1456, 532)"/>
+  <rect x="1374" y="570" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.4, 1374, 570)"/>
+  <rect x="1408" y="568" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.6, 1408, 568)"/>
+  <rect x="1456" y="570" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.3, 1456, 570)"/>
+  <rect x="1374" y="608" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.3, 1374, 608)"/>
+  <rect x="1408" y="606" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.5, 1408, 606)"/>
+  <rect x="1456" y="608" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.4, 1456, 608)"/>
+  <rect x="1374" y="646" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.2, 1374, 646)"/>
+  <rect x="1408" y="644" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.3, 1408, 644)"/>
+  <rect x="1456" y="646" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.4, 1456, 646)"/>
+  <rect x="1374" y="684" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.5, 1374, 684)"/>
+  <rect x="1408" y="682" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(0.4, 1408, 682)"/>
+  <rect x="1456" y="684" width="24" height="26" rx="2" fill="#F8F8F8" stroke="#222222" stroke-width="2" transform="rotate(-0.3, 1456, 684)"/>
+
+  <!-- ── Title text: The Great Commute ── -->
+  <!-- Black box behind title -->
+  <rect x="760" y="90" width="970" height="130" rx="14" fill="#1A1A1A"/>
+  <text x="1245" y="156"
+    font-family="'Arial Black', 'Impact', 'Helvetica Neue', Arial, sans-serif"
+    font-size="80"
+    font-weight="900"
+    fill="#FFE14D"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    letter-spacing="4">The Great Commute</text>
+
+  <!-- ── Right star decoration ── -->
+  <path d="M1870 520 L1878 544 L1904 544 L1883 558 L1891 582 L1870 568 L1849 582 L1857 558 L1836 544 L1862 544 Z"
+    fill="#FFCC00" stroke="#1A1A1A" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M1880 660 L1885 674 L1900 674 L1889 682 L1894 696 L1880 688 L1866 696 L1871 682 L1860 674 L1875 674 Z"
+    fill="#FFCC00" stroke="#1A1A1A" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- Exclamation decoration right -->
+  <rect x="1898" y="300" width="12" height="46" rx="6" fill="#CC3333" stroke="#1A1A1A" stroke-width="2"/>
+  <circle cx="1904" cy="362" r="8" fill="#CC3333" stroke="#1A1A1A" stroke-width="2"/>
+
+  <!-- Sweat drop decoration -->
+  <path d="M840 680 Q832 698 840 710 Q848 698 840 680 Z" fill="#88BBFF" stroke="#1A1A1A" stroke-width="2.5"/>
+  <path d="M815 700 Q808 716 815 726 Q822 716 815 700 Z" fill="#88BBFF" stroke="#1A1A1A" stroke-width="2.5"/>
+
+</svg>

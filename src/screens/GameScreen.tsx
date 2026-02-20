@@ -29,7 +29,11 @@ export const GameScreen: React.FC = () => {
 
   const gameLoopRef       = useRef<GameLoop | null>(null);
   const physicsRef        = useRef<Physics>(new Physics());
-  const characterRef      = useRef<CharacterRenderer>(new CharacterRenderer());
+  const characterRef      = useRef<CharacterRenderer>((() => {
+    const cr = new CharacterRenderer();
+    cr.warmUp(CHARACTER_X, GROUND_Y);
+    return cr;
+  })());
   const backgroundRef     = useRef<BackgroundRenderer>(new BackgroundRenderer());
   const inputRef          = useRef<InputManager>(new InputManager());
   const directionRef      = useRef<-1 | 0 | 1>(0);

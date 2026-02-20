@@ -105,7 +105,7 @@ export class Physics {
     // Walk phase (oscillator driven by speed)
     // Divisor raised from 80 → 128 to slow the walk cycle,
     // giving the Verlet leg chain more time to swing at the tip.
-    const cycleFreq = this.state.speed / 128;
+    const cycleFreq = this.state.speed / 80;
     this.state.walkPhase += cycleFreq * dt * Math.PI * 2;
   }
 

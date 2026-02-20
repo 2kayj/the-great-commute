@@ -6,10 +6,12 @@
 
 .app-wrapper {
   min-height: 100vh;
+  min-height: 100dvh;
   background: #cccccc;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .phone-frame {
@@ -31,8 +33,14 @@
 }
 
 @media (max-width: 400px) {
+  .app-wrapper {
+    padding: 0;
+  }
+
   .phone-frame {
     width: 100vw;
+    width: 100dvw;
+    height: 100vh;
     height: 100dvh;
     border-radius: 0;
     border: none;
