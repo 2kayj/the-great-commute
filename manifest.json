@@ -1,0 +1,22 @@
+{
+  "name": "폐급 신입 출근 대작전",
+  "short_name": "The Great Commute",
+  "description": "커피를 들고 출근하는 밸런스 아케이드 게임",
+  "start_url": "/the-great-commute/",
+  "scope": "/the-great-commute/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFE14D",
+  "theme_color": "#FFE14D",
+  "icons": [
+    { "src": "logo.png", "sizes": "600x600", "type": "image/png" },
+    { "src": "logo-1000.png", "sizes": "1000x1000", "type": "image/png" },
+    { "src": "icons/icon-44.png", "sizes": "44x44", "type": "image/png" },
+    { "src": "icons/icon-50.png", "sizes": "50x50", "type": "image/png" },
+    { "src": "icons/icon-150.png", "sizes": "150x150", "type": "image/png" },
+    { "src": "icons/icon-310.png", "sizes": "310x310", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "categories": ["games", "entertainment"],
+  "lang": "ko"
+}
