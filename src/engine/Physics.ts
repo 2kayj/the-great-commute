@@ -9,6 +9,7 @@ import {
   SPEED_INCREMENT,
 } from '../utils/constants';
 import { clamp } from '../utils/math';
+import { DifficultyManager } from './DifficultyManager';
 
 export interface PhysicsState {
   angle: number;
@@ -23,6 +24,7 @@ export interface PhysicsState {
 export class Physics {
   private state: PhysicsState;
   private accumulator: number = 0;
+  private difficultyManager: DifficultyManager = new DifficultyManager();
 
   constructor() {
     this.state = {
@@ -64,14 +66,22 @@ export class Physics {
   private step(dt: number, inputDirection: -1 | 0 | 1): void {
     const { angle } = this.state;
 
-    // Torque from gravity (pendulum-like)
-    const gravityTorque = GRAVITY * Math.sin(angle);
+    // Difficulty scaling based on current distance and time
+    const diffConfig = this.difficultyManager.getConfig(
+      this.state.distance,
+      this.state.elapsedTime
+    );
+
+    // Torque from gravity (pendulum-like), scaled by difficulty
+    const gravityTorque = GRAVITY * diffConfig.gravityMultiplier * Math.sin(angle);
 
     // Torque from player input
     const inputTorque = INPUT_FORCE * inputDirection;
 
+    const effectiveDamping = ANGULAR_DAMPING * diffConfig.angularDampingMultiplier;
+
     this.state.angularVelocity += (gravityTorque + inputTorque) * dt;
-    this.state.angularVelocity *= ANGULAR_DAMPING;
+    this.state.angularVelocity *= effectiveDamping;
 
     this.state.angle += this.state.angularVelocity * dt;
     this.state.angle = clamp(this.state.angle, -MAX_ANGLE * 1.5, MAX_ANGLE * 1.5);
@@ -93,7 +103,9 @@ export class Physics {
     this.state.elapsedTime += dt;
 
     // Walk phase (oscillator driven by speed)
-    const cycleFreq = this.state.speed / 80;
+    // Divisor raised from 80 → 128 to slow the walk cycle,
+    // giving the Verlet leg chain more time to swing at the tip.
+    const cycleFreq = this.state.speed / 128;
     this.state.walkPhase += cycleFreq * dt * Math.PI * 2;
   }
 

@@ -89,7 +89,7 @@ export const CountdownScreen: React.FC = () => {
       const dt = Math.min((timestamp - (lastTimeRef.current || timestamp)) / 1000, 0.05);
       lastTimeRef.current = timestamp;
 
-      walkPhaseRef.current += dt * 3.5;
+      walkPhaseRef.current += dt * 2.2;
 
       bg.update(dt, 80, 0);
       char.update(CHARACTER_X, GROUND_Y, walkPhaseRef.current, 0, dt);

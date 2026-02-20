@@ -1,13 +1,13 @@
 export const CANVAS_WIDTH = 390;
 export const CANVAS_HEIGHT = 844;
 
-export const GRAVITY = 9.8;
-export const ANGULAR_DAMPING = 0.92;
+export const GRAVITY = 30.42;
+export const ANGULAR_DAMPING = 0.88;
 export const MAX_ANGLE = Math.PI / 3; // 60 degrees
-export const INPUT_FORCE = 18;
+export const INPUT_FORCE = 70;
 
 export const INITIAL_SPEED = 80; // px/s
-export const MAX_SPEED = 300;
+export const MAX_SPEED = 140;
 export const SPEED_INCREMENT = 4; // px/s per second
 
 export const FIXED_DT = 1 / 60;

@@ -40,51 +40,59 @@ export const GameOverScreen: React.FC = () => {
         {/* Ground */}
         <div className="go-ground" />
 
-        {/* Coffee spill */}
-        <div className="go-spill">
-          <svg width="130" height="60" viewBox="0 0 130 60" fill="none">
-            <path d="M 10 40 Q 20 25 40 30 Q 55 20 70 32 Q 85 22 100 30 Q 115 25 120 38 Q 110 50 90 48 Q 70 55 50 50 Q 30 55 15 48 Z"
-                  fill="#8B5E3C" stroke="#5C3D1E" strokeWidth="2" opacity="0.85"/>
-            <circle cx="25" cy="20" r="5" fill="#8B5E3C" stroke="#5C3D1E" strokeWidth="1.5" opacity="0.7"/>
-            <circle cx="50" cy="12" r="4" fill="#8B5E3C" stroke="#5C3D1E" strokeWidth="1.5" opacity="0.6"/>
-            <circle cx="80" cy="10" r="6" fill="#8B5E3C" stroke="#5C3D1E" strokeWidth="1.5" opacity="0.7"/>
-            <circle cx="108" cy="15" r="4" fill="#8B5E3C" stroke="#5C3D1E" strokeWidth="1.5" opacity="0.6"/>
-          </svg>
-        </div>
 
-        {/* Fallen character */}
+        {/* Fallen character — standing pose rotated 90 degrees clockwise around foot pivot */}
+        {/*
+          Strategy: draw the character upright (cx=60, groundY=110) then
+          rotate the whole group 90deg clockwise around the foot point (60, 110).
+          rotate(90, 60, 110) is the SVG shorthand for this pivot rotation.
+
+          Character upright dimensions (CharacterRenderer.ts constants):
+            bodyW=22, bodyH=18, headR=14, neckLen=10
+            bodyH2=36, bodyTopY = groundY - bodyH2 - neckLen - headR*2 - 20
+                                = 110 - 36 - 10 - 28 - 20 = 16
+            bodyCenterY = bodyTopY + bodyH = 16 + 18 = 34
+            hipY = bodyCenterY + bodyH*0.6 = 34 + 10.8 ≈ 45
+            shoulderY = bodyCenterY - bodyH*0.5 = 34 - 9 = 25
+            neckBaseY = bodyTopY - 2 = 14
+            headY (center) = neckBaseY - neckLen - headR = 14 - 10 - 14 = -10
+        */}
         <div className="go-fallen-char">
-          <svg width="160" height="100" viewBox="0 0 160 100" fill="none">
-            <line x1="80" y1="55" x2="60"  y2="20" stroke="#222" strokeWidth="3" strokeLinecap="round"/>
-            <line x1="90" y1="55" x2="115" y2="40" stroke="#222" strokeWidth="3" strokeLinecap="round"/>
-            <ellipse cx="85" cy="60" rx="22" ry="14" fill="white" stroke="#222" strokeWidth="2.5"
-                     transform="rotate(-10, 85, 60)"/>
-            <polygon points="80,52 84,62 76,62" fill="#333" stroke="#222" strokeWidth="1"
-                     transform="rotate(-20, 80, 57)"/>
-            <line x1="60" y1="58" x2="64" y2="52" stroke="#222" strokeWidth="2.5" strokeLinecap="round"/>
-            <circle cx="52" cy="52" r="14" fill="white" stroke="#222" strokeWidth="2.5"/>
-            {/* X eyes */}
-            <line x1="44" y1="45" x2="50" y2="51" stroke="#222" strokeWidth="2" strokeLinecap="round"/>
-            <line x1="50" y1="45" x2="44" y2="51" stroke="#222" strokeWidth="2" strokeLinecap="round"/>
-            <line x1="55" y1="45" x2="61" y2="51" stroke="#222" strokeWidth="2" strokeLinecap="round"/>
-            <line x1="61" y1="45" x2="55" y2="51" stroke="#222" strokeWidth="2" strokeLinecap="round"/>
-            {/* Sad beak */}
-            <path d="M 47 58 Q 52 64 57 58" stroke="#FFD700" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-            <line x1="72" y1="52" x2="48"  y2="32" stroke="#222" strokeWidth="2.5" strokeLinecap="round"/>
-            <line x1="98" y1="52" x2="128" y2="58" stroke="#222" strokeWidth="2.5" strokeLinecap="round"/>
+          <svg width="320" height="120" viewBox="0 0 320 120" fill="none">
+            {/* Character: upright at cx=60,groundY=110, then rotated 90deg CW around foot */}
+            <g transform="rotate(90, 60, 110)">
+              {/* Legs — limp, straight down */}
+              <path d="M 54 45 Q 46 65 54 110" stroke="#222" strokeWidth="3" strokeLinecap="round"/>
+              <path d="M 66 45 Q 74 65 66 110" stroke="#222" strokeWidth="3" strokeLinecap="round"/>
+
+              {/* Body ellipse: cx=60, cy=34, rx=22, ry=18 */}
+              <ellipse cx="60" cy="34" rx="22" ry="18" fill="white" stroke="#222" strokeWidth="2.5"/>
+
+              {/* Necktie */}
+              <polygon points="60,26 56,38 64,38" fill="#333" stroke="#222" strokeWidth="1"/>
+
+              {/* Left arm — limp at side */}
+              <path d="M 39 25 Q 31 43 38 63" stroke="#222" strokeWidth="2.5" strokeLinecap="round"/>
+
+              {/* Right arm — limp at side */}
+              <path d="M 81 25 Q 89 43 82 63" stroke="#222" strokeWidth="2.5" strokeLinecap="round"/>
+
+              {/* Neck */}
+              <line x1="60" y1="14" x2="60" y2="4" stroke="#222" strokeWidth="2.5" strokeLinecap="round"/>
+
+              {/* Head circle: cy = neckTop - headR = 4 - 14 = -10 */}
+              <circle cx="60" cy="-10" r="14" fill="white" stroke="#222" strokeWidth="2.5"/>
+              {/* Eyes */}
+              <circle cx="55" cy="-13" r="2" fill="#222"/>
+              <circle cx="65" cy="-13" r="2" fill="#222"/>
+              {/* Beak (triangle pointing down) */}
+              <polygon points="60,-6 55,0 65,0" fill="#FFD700" stroke="#222" strokeWidth="1.5"/>
+            </g>
           </svg>
         </div>
 
-        {/* Dizzy */}
-        <div className="go-dizzy">
-          <svg width="50" height="50" viewBox="0 0 50 50" fill="none">
-            <circle cx="25" cy="25" r="18" stroke="#222" strokeWidth="2" strokeDasharray="4 4"/>
-            <text x="25" y="31" textAnchor="middle" fontSize="16" fontFamily="serif" fill="#222">*</text>
-          </svg>
-        </div>
-
-        {/* Aigo text */}
-        <div className="aigo-text">아이고!</div>
+        {/* "그냥 누워버림" text — replaces 아이고! */}
+        <div className="aigo-text">...그냥 누울래요</div>
       </div>
 
       {/* Bottom */}

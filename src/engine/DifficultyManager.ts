@@ -19,16 +19,16 @@ export class DifficultyManager {
     let gravityMultiplier = 1.0;
     let angularDampingMultiplier = 1.0;
 
-    if (distance > 100) {
-      const t = smoothstep(100, 300, distance);
-      gravityMultiplier = 1.0 + t * 0.3;
-      angularDampingMultiplier = 1.0 - t * 0.05;
+    if (distance > 50) {
+      const t = smoothstep(50, 200, distance);
+      gravityMultiplier = 1.0 + t * 0.5;
+      angularDampingMultiplier = 1.0 - t * 0.08;
     }
 
-    if (distance > 300) {
-      const t = smoothstep(300, 600, distance);
-      gravityMultiplier = 1.3 + t * 0.5;
-      angularDampingMultiplier = 0.95 - t * 0.05;
+    if (distance > 200) {
+      const t = smoothstep(200, 500, distance);
+      gravityMultiplier = 1.5 + t * 0.8;
+      angularDampingMultiplier = 0.92 - t * 0.07;
     }
 
     let backgroundLabel = '주택가';
@@ -44,6 +44,6 @@ export class DifficultyManager {
   }
 
   getSpeedMultiplier(elapsedTime: number): number {
-    return clamp(1.0 + elapsedTime * 0.04, 1.0, 3.5);
+    return clamp(1.0 + elapsedTime * 0.04, 1.0, 2.0);
   }
 }

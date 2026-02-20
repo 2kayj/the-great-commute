@@ -63,45 +63,32 @@
   bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
-  animation: fallOver 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.08s both;
+  animation: fallOver 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.05s both;
 }
 
 @keyframes fallOver {
-  0%   { transform: translateX(-50%) rotate(0deg) translateY(-30px); opacity: 0; }
-  40%  { transform: translateX(-50%) rotate(80deg) translateY(0); opacity: 1; }
-  70%  { transform: translateX(-50%) rotate(95deg) translateY(0); }
-  85%  { transform: translateX(-50%) rotate(87deg) translateY(0); }
-  100% { transform: translateX(-50%) rotate(90deg) translateY(0); }
-}
-
-.go-dizzy {
-  position: absolute;
-  top: 60px;
-  left: 52%;
-  animation: dizzySpin 1.2s linear infinite;
-}
-
-@keyframes dizzySpin {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0%   { transform: translateX(-50%) translateY(-40px) scaleX(0.6); opacity: 0; }
+  50%  { transform: translateX(-50%) translateY(4px) scaleX(1.04); opacity: 1; }
+  75%  { transform: translateX(-50%) translateY(-2px) scaleX(0.98); }
+  100% { transform: translateX(-50%) translateY(0) scaleX(1); opacity: 1; }
 }
 
 .aigo-text {
   position: absolute;
-  top: 24px;
+  top: 20px;
   left: 50%;
-  transform: translateX(-50%) rotate(-5deg);
-  font-size: 36px;
+  transform: translateX(-50%) rotate(-3deg);
+  font-size: 26px;
   font-weight: bold;
-  color: #222;
+  color: #555;
   white-space: nowrap;
-  animation: aigoAppear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both;
-  text-shadow: 3px 3px 0 rgba(0,0,0,0.15);
+  animation: aigoAppear 0.5s ease-out 0.5s both;
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.08);
 }
 
 @keyframes aigoAppear {
-  0%   { transform: translateX(-50%) rotate(-5deg) scale(0.3); opacity: 0; }
-  100% { transform: translateX(-50%) rotate(-5deg) scale(1); opacity: 1; }
+  0%   { transform: translateX(-50%) rotate(-3deg); opacity: 0; }
+  100% { transform: translateX(-50%) rotate(-3deg); opacity: 1; }
 }
 
 /* Bottom */
@@ -129,7 +116,8 @@
 }
 
 .go-sub {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
   color: #777;
 }
 
@@ -198,7 +186,7 @@
 }
 
 .compare-text {
-  font-size: 13px;
+  font-size: 14px;
   color: #333;
   line-height: 1.6;
   font-weight: bold;
@@ -219,7 +207,6 @@
   height: 60px;
   background: #222;
   color: white;
-  font-family: 'Comic Sans MS', 'Comic Sans', cursive;
   font-size: 20px;
   font-weight: bold;
   border: 3px solid #222;
@@ -248,7 +235,6 @@
   height: 48px;
   background: white;
   color: #222;
-  font-family: 'Comic Sans MS', 'Comic Sans', cursive;
   font-size: 14px;
   font-weight: bold;
   border: 2px solid #222;

@@ -114,22 +114,19 @@
 }
 
 /* Speech bubble */
-/* top is set dynamically via inline style in GameScreen.tsx
-   based on the character's actual head canvas coordinate */
+/* top and left are set dynamically via inline style in GameScreen.tsx
+   based on the character's actual head canvas coordinate and x position */
 .speech-bubble {
   display: none;
   position: absolute;
-  left: 50%;
   top: 554px; /* fallback — overridden by inline style */
-  transform: translateX(-50%);
   z-index: 30;
   background: white;
   border: 2.5px solid #222;
   box-shadow: 3px 3px 0 #222;
   padding: 8px 14px;
-  font-family: 'Comic Sans MS', 'Comic Sans', 'Chalkboard SE', cursive;
-  font-size: 14px;
-  font-weight: bold;
+  font-size: 16px;
+  font-weight: 700;
   color: #222;
   white-space: nowrap;
   pointer-events: none;
@@ -141,8 +138,7 @@
   content: '';
   position: absolute;
   bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 20px;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
   border-top: 10px solid #222;
@@ -152,8 +148,7 @@
   content: '';
   position: absolute;
   bottom: -7px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 20px;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
   border-top: 8px solid white;
@@ -170,11 +165,11 @@
 }
 
 @keyframes speechPop {
-  0%   { opacity: 0; transform: translateX(-50%) scale(0.7); }
-  100% { opacity: 1; transform: translateX(-50%) scale(1); }
+  0%   { opacity: 0; transform: scale(0.7); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 @keyframes speechFade {
-  0%   { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); }
-  100% { opacity: 0; transform: translateX(-50%) scale(0.9) translateY(-8px); }
+  0%   { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.9) translateY(-8px); }
 }

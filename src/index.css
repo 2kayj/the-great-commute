@@ -3,7 +3,7 @@
 }
 
 :root {
-  font-family: 'Comic Sans MS', 'Comic Sans', 'Chalkboard SE', cursive;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -18,7 +18,7 @@ body {
 }
 
 button {
-  font-family: 'Comic Sans MS', 'Comic Sans', 'Chalkboard SE', cursive;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   cursor: pointer;
 }
 

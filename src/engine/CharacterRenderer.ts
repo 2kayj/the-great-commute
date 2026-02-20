@@ -17,25 +17,90 @@ export class CharacterRenderer {
   private readonly headR = 14;
   private readonly neckLen = 10;
 
+  // Fall-over animation state
+  // fallenProgress: 0 = upright, 1 = fully lying down
+  private fallenProgress: number = 0;
+  // fallStartAngle: the physics angle at the moment game over was triggered
+  private fallStartAngle: number = 0;
+  // fallDirection: +1 = fell right, -1 = fell left
+  private fallDirection: number = 1;
+
   constructor() {
     this.leftArm  = new VerletChain(4, 10, 0.3, 0.96);
     this.rightArm = new VerletChain(4, 10, 0.3, 0.96);
-    this.leftLeg  = new VerletChain(5, 13, 0.45, 0.90, 1, 3);
-    this.rightLeg = new VerletChain(5, 13, 0.45, 0.90, 1, 3);
+    this.leftLeg  = new VerletChain(5, 17, 0.55, 0.89, 1, 3);
+    this.rightLeg = new VerletChain(5, 17, 0.55, 0.89, 1, 3);
     this.neck     = new VerletChain(3, 5, 0.12, 0.985, -1);
+
+    // Give each limb a small random initial velocity so they start
+    // in motion rather than frozen. Verlet velocity = (pos - prevPos),
+    // so shifting prevPos by a small offset produces an immediate impulse.
+    // Anchor node (index 0) is left untouched — only free nodes get the kick.
+    this.applyInitialJitter(this.leftArm.nodes,  2, 3);
+    this.applyInitialJitter(this.rightArm.nodes, 2, 3);
+    this.applyInitialJitter(this.leftLeg.nodes,  2, 4);
+    this.applyInitialJitter(this.rightLeg.nodes, 2, 4);
+    this.applyInitialJitter(this.neck.nodes,     1, 2);
+  }
+
+  /**
+   * Shifts `prevX`/`prevY` of non-anchor nodes by a random amount within
+   * ±maxOffset px so that Verlet integration starts with a small velocity.
+   * The jitter grows slightly toward the tip of the chain (distal amplification)
+   * to mimic the natural way loose limbs swing from their root.
+   *
+   * @param nodes      Array of VerletNode belonging to one chain
+   * @param minOffset  Minimum absolute shift in pixels
+   * @param maxOffset  Maximum absolute shift in pixels (at the tip)
+   */
+  private applyInitialJitter(
+    nodes: { x: number; y: number; prevX: number; prevY: number; pinned: boolean }[],
+    minOffset: number,
+    maxOffset: number
+  ): void {
+    for (let i = 1; i < nodes.length; i++) {
+      // Scale amplitude toward the tip: nodes deeper in the chain swing more
+      const t = i / (nodes.length - 1);
+      const amplitude = minOffset + (maxOffset - minOffset) * t;
+
+      const jx = (Math.random() * 2 - 1) * amplitude;
+      const jy = (Math.random() * 2 - 1) * amplitude;
+
+      // Subtract from prevPos → velocity on next step = pos - prevPos = +jx, +jy
+      nodes[i].prevX = nodes[i].x - jx;
+      nodes[i].prevY = nodes[i].y - jy;
+    }
   }
 
   update(
     centerX: number,
     groundY: number,
     walkPhase: number,
-    _angle: number,
-    deltaTime: number
+    angle: number,
+    deltaTime: number,
+    isFallen: boolean = false
   ): void {
+    if (isFallen) {
+      // Advance fall animation — takes ~0.55s to complete
+      const FALL_DURATION = 0.55;
+      if (this.fallenProgress < 1) {
+        this.fallenProgress = Math.min(1, this.fallenProgress + deltaTime / FALL_DURATION);
+        // Only tick time during the fall transition; freeze once fully lying down
+        this.time += deltaTime;
+      }
+      // No Verlet updates needed while lying down
+      return;
+    }
+
+    // Reset fall state whenever we're not fallen (e.g. after retry)
+    this.fallenProgress = 0;
+    this.fallStartAngle = angle;
+    this.fallDirection = angle >= 0 ? 1 : -1;
+
+    // Tick animation time only while walking (not while fallen)
     this.time += deltaTime;
 
     const bodyTopY = groundY - this.bodyH * 2 - this.neckLen - this.headR * 2 - 20;
-    const bodyBottomY = bodyTopY + this.bodyH * 2;
 
     const bodySwayX = Math.sin(walkPhase * 2) * 3;
     const bodyBobY  = Math.abs(Math.sin(walkPhase)) * -4;
@@ -98,16 +163,15 @@ export class CharacterRenderer {
     walkPhase: number,
     isFallen: boolean = false
   ): void {
+    if (isFallen) {
+      this.renderFallingOver(ctx, centerX, groundY, angle);
+      return;
+    }
+
     ctx.save();
     ctx.translate(centerX, groundY);
     ctx.rotate(angle);
     ctx.translate(-centerX, -groundY);
-
-    if (isFallen) {
-      this.renderFallen(ctx, centerX, groundY);
-      ctx.restore();
-      return;
-    }
 
     const bodyH2 = this.bodyH * 2;
     const bodyTopY = groundY - bodyH2 - this.neckLen - this.headR * 2 - 20;
@@ -192,53 +256,38 @@ export class CharacterRenderer {
     ctx.fillStyle = COLORS.bg;
     ctx.lineWidth = 2.5;
 
-    // Head circle with wobble
+    // Head circle — wobble only when not fallen
     ctx.beginPath();
-    ctx.arc(x + wobbleOffset(10, t, 1), y + wobbleOffset(11, t, 1), r, 0, Math.PI * 2);
+    if (fallen) {
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+    } else {
+      ctx.arc(x + wobbleOffset(10, t, 1), y + wobbleOffset(11, t, 1), r, 0, Math.PI * 2);
+    }
     ctx.fill();
     ctx.stroke();
 
-    if (fallen) {
-      // X eyes
-      ctx.strokeStyle = COLORS.line;
-      ctx.lineWidth = 2;
-      const ex1 = x - 5, ex2 = x + 5, ey = y - 3;
-      ctx.beginPath();
-      ctx.moveTo(ex1 - 3, ey - 3); ctx.lineTo(ex1 + 3, ey + 3);
-      ctx.moveTo(ex1 + 3, ey - 3); ctx.lineTo(ex1 - 3, ey + 3);
-      ctx.moveTo(ex2 - 3, ey - 3); ctx.lineTo(ex2 + 3, ey + 3);
-      ctx.moveTo(ex2 + 3, ey - 3); ctx.lineTo(ex2 - 3, ey + 3);
-      ctx.stroke();
+    // Eyes — wobble when walking, static when fallen. Always normal dot eyes (never XX)
+    const eyeWobbleX = fallen ? 0 : wobbleOffset(12, t, 0.5);
+    const eyeWobbleX2 = fallen ? 0 : wobbleOffset(13, t, 0.5);
+    ctx.fillStyle = COLORS.line;
+    ctx.beginPath();
+    ctx.arc(x - 5 + eyeWobbleX, y - 3, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + 5 + eyeWobbleX2, y - 3, 2, 0, Math.PI * 2);
+    ctx.fill();
 
-      // Sad beak
-      ctx.strokeStyle = COLORS.gold;
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(x - 5, y + 7);
-      ctx.quadraticCurveTo(x, y + 13, x + 5, y + 7);
-      ctx.stroke();
-    } else {
-      // Normal eyes (dots)
-      ctx.fillStyle = COLORS.line;
-      ctx.beginPath();
-      ctx.arc(x - 5 + wobbleOffset(12, t, 0.5), y - 3, 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(x + 5 + wobbleOffset(13, t, 0.5), y - 3, 2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Beak (triangle pointing down)
-      ctx.fillStyle = COLORS.gold;
-      ctx.strokeStyle = COLORS.line;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(x, y + 4);
-      ctx.lineTo(x - 5, y + 10);
-      ctx.lineTo(x + 5, y + 10);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
+    // Beak (triangle pointing down) — always normal
+    ctx.fillStyle = COLORS.gold;
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 4);
+    ctx.lineTo(x - 5, y + 10);
+    ctx.lineTo(x + 5, y + 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
 
     ctx.restore();
   }
@@ -289,97 +338,148 @@ export class CharacterRenderer {
     ctx.fillRect(x, y, w, 4);
   }
 
-  private renderFallen(
+  /**
+   * Renders the fall-over animation.
+   *
+   * Phase 1 (fallenProgress 0→1): character rotates from its current physics
+   *   angle toward lying flat (±90°), pivoting around the foot contact point.
+   *   Uses easeOutBounce-like curve so it hits the ground with a slight thud.
+   *
+   * When fully fallen (fallenProgress === 1): renders the static lying pose.
+   */
+  private renderFallingOver(
     ctx: CanvasRenderingContext2D,
     cx: number,
-    groundY: number
+    groundY: number,
+    _currentAngle: number
   ): void {
-    const gy = groundY;
+    const p = this.fallenProgress;
+
+    // Use the angle at first frame of falling (captured in update())
+    // If fallenProgress just started this frame, fallStartAngle was set last frame.
+    const startAngle = this.fallStartAngle;
+    const dir = this.fallDirection;
+
+    // Target angle: lying flat = ±(PI/2)
+    const targetAngle = dir * (Math.PI / 2);
+
+    // Easing: fast fall with a tiny overshoot at the end (thud feel)
+    const eased = this.easeOutBack(p);
+    const lerpedAngle = startAngle + (targetAngle - startAngle) * eased;
+
+    // Both falling phase and fully-fallen phase: rotate the standing pose around the foot pivot.
+    // When p < 1: interpolated angle. When p === 1: locked at ±PI/2 (fully lying flat).
     ctx.save();
-    ctx.translate(cx - 40, gy - 20);
-    ctx.rotate(Math.PI / 2);
+    ctx.translate(cx, groundY);
+    ctx.rotate(lerpedAngle);
+    ctx.translate(-cx, -groundY);
+
+    this.renderStandingPose(ctx, cx, groundY, 0, false);
+
+    ctx.restore();
+  }
+
+  /**
+   * Renders the character in its normal upright standing pose (no walk animation).
+   * Used during the fall-over transition.
+   */
+  private renderStandingPose(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    groundY: number,
+    _walkPhase: number,
+    _wobble: boolean
+  ): void {
+    const bodyH2 = this.bodyH * 2;
+    const bodyTopY = groundY - bodyH2 - this.neckLen - this.headR * 2 - 20;
+    const bx = cx;
+    const by = bodyTopY;
+    const bodyCenterY = by + this.bodyH;
+
+    // Legs — straight down, limp (no walk swing)
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+
+    // Left leg
+    const leftHipX = bx - 6;
+    const rightHipX = bx + 6;
+    const hipY = bodyCenterY + this.bodyH * 0.6;
+
+    ctx.beginPath();
+    ctx.moveTo(leftHipX, hipY);
+    // Limp — slightly splayed outward
+    ctx.quadraticCurveTo(leftHipX - 8, hipY + 20, leftHipX - 6, groundY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(rightHipX, hipY);
+    ctx.quadraticCurveTo(rightHipX + 8, hipY + 20, rightHipX + 6, groundY);
+    ctx.stroke();
 
     // Body
+    ctx.save();
     ctx.strokeStyle = COLORS.line;
     ctx.fillStyle = COLORS.bg;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.ellipse(0, 0, this.bodyW, this.bodyH, 0, 0, Math.PI * 2);
+    ctx.ellipse(bx, bodyCenterY, this.bodyW, this.bodyH, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
     // Necktie
-    ctx.fillStyle = '#333';
-    ctx.beginPath();
-    ctx.moveTo(0, -8); ctx.lineTo(4, 2); ctx.lineTo(-4, 2);
-    ctx.closePath(); ctx.fill();
-
-    // Legs (akimbo)
+    ctx.fillStyle = '#333333';
     ctx.strokeStyle = COLORS.line;
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(-8, this.bodyH);
-    ctx.lineTo(-25, this.bodyH + 35);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(8, this.bodyH);
-    ctx.lineTo(30, this.bodyH + 20);
-    ctx.stroke();
-
-    // Arms flailing
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(-this.bodyW, -5);
-    ctx.lineTo(-this.bodyW - 25, -30);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(this.bodyW, -5);
-    ctx.lineTo(this.bodyW + 30, 10);
-    ctx.stroke();
-
-    ctx.restore();
-
-    // Head (separate, rolled to side)
-    this.renderHead(ctx, cx - 70, groundY - 15, true);
-
-    // Coffee spill
-    this.renderCoffeeSpill(ctx, cx - 20, groundY - 5);
-  }
-
-  private renderCoffeeSpill(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-    ctx.save();
-    ctx.translate(x, y);
-
-    ctx.fillStyle = COLORS.coffee;
-    ctx.strokeStyle = COLORS.coffeeDark;
-    ctx.lineWidth = 2;
-    ctx.globalAlpha = 0.85;
-
-    ctx.beginPath();
-    ctx.moveTo(10, -8);
-    ctx.quadraticCurveTo(30, -20, 55, -12);
-    ctx.quadraticCurveTo(75, -5, 70, 5);
-    ctx.quadraticCurveTo(60, 18, 35, 16);
-    ctx.quadraticCurveTo(10, 18, 5, 8);
-    ctx.quadraticCurveTo(-5, 0, 10, -8);
+    ctx.moveTo(bx, bodyCenterY - 8);
+    ctx.lineTo(bx + 4, bodyCenterY + 4);
+    ctx.lineTo(bx - 4, bodyCenterY + 4);
+    ctx.closePath();
     ctx.fill();
     ctx.stroke();
-
-    // Splash droplets
-    const drops = [
-      [-5, -15, 4], [20, -22, 5], [50, -20, 4],
-      [72, -15, 3], [78, 5, 3], [-8, 8, 3],
-    ];
-    drops.forEach(([dx, dy, r]) => {
-      ctx.beginPath();
-      ctx.arc(dx, dy, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    });
-
-    ctx.globalAlpha = 1;
     ctx.restore();
+
+    // Arms — hanging limp at sides
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+
+    const shoulderY = bodyCenterY - this.bodyH * 0.5;
+
+    // Left arm limp
+    ctx.beginPath();
+    ctx.moveTo(bx - this.bodyW + 4, shoulderY);
+    ctx.quadraticCurveTo(bx - this.bodyW - 4, shoulderY + 18, bx - this.bodyW, shoulderY + 38);
+    ctx.stroke();
+
+    // Right arm limp (no tray — dropped)
+    ctx.beginPath();
+    ctx.moveTo(bx + this.bodyW - 4, shoulderY);
+    ctx.quadraticCurveTo(bx + this.bodyW + 4, shoulderY + 18, bx + this.bodyW, shoulderY + 38);
+    ctx.stroke();
+
+    // Neck — straight up
+    const neckBaseY = by - 2;
+    const headY = neckBaseY - this.neckLen;
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(bx, neckBaseY);
+    ctx.lineTo(bx, headY);
+    ctx.stroke();
+
+    // Head with normal expression
+    this.renderHead(ctx, bx, headY - this.headR, false);
+  }
+
+  /**
+   * easeOutQuart: decelerates quickly to a hard stop with no overshoot.
+   * Replaces the previous easeOutBack to ensure the character locks in place
+   * exactly at the fully-fallen position without any bounce or jitter.
+   */
+  private easeOutBack(t: number): number {
+    return 1 - Math.pow(1 - t, 4);
   }
 
   getTipPosition(): { x: number; y: number } {

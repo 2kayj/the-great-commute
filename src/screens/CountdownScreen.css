@@ -153,13 +153,14 @@
 }
 
 .msg-main {
-  font-size: 16px;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 700;
   color: #222;
   margin-bottom: 6px;
 }
 
 .msg-sub {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
   color: #777;
 }

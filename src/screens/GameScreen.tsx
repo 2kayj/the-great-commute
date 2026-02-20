@@ -27,17 +27,30 @@ export const GameScreen: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const gameLoopRef    = useRef<GameLoop | null>(null);
-  const physicsRef     = useRef<Physics>(new Physics());
-  const characterRef   = useRef<CharacterRenderer>(new CharacterRenderer());
-  const backgroundRef  = useRef<BackgroundRenderer>(new BackgroundRenderer());
-  const inputRef       = useRef<InputManager>(new InputManager());
-  const directionRef   = useRef<-1 | 0 | 1>(0);
+  const gameLoopRef       = useRef<GameLoop | null>(null);
+  const physicsRef        = useRef<Physics>(new Physics());
+  const characterRef      = useRef<CharacterRenderer>(new CharacterRenderer());
+  const backgroundRef     = useRef<BackgroundRenderer>(new BackgroundRenderer());
+  const inputRef          = useRef<InputManager>(new InputManager());
+  const directionRef      = useRef<-1 | 0 | 1>(0);
+  const gameOverFiredRef  = useRef<boolean>(false);
+  const gameOverTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { setPhase, setDistance, setIsNewRecord } = useGameStore();
   const { bestDistance, submitRecord } = useRecordStore();
   const bestDistRef = useRef(bestDistance);
   bestDistRef.current = bestDistance;
+
+  // Stable refs for store actions — prevents useEffect from re-running
+  // when Zustand returns new function references across renders.
+  const setPhaseRef       = useRef(setPhase);
+  const setDistanceRef    = useRef(setDistance);
+  const setIsNewRecordRef = useRef(setIsNewRecord);
+  const submitRecordRef   = useRef(submitRecord);
+  setPhaseRef.current       = setPhase;
+  setDistanceRef.current    = setDistance;
+  setIsNewRecordRef.current = setIsNewRecord;
+  submitRecordRef.current   = submitRecord;
 
   // HUD refs (avoid re-renders)
   const distanceTopRef   = useRef<HTMLSpanElement>(null);
@@ -128,6 +141,7 @@ export const GameScreen: React.FC = () => {
 
     physics.reset();
     background.reset();
+    gameOverFiredRef.current = false;
 
     if (containerRef.current) {
       input.attach(containerRef.current, (state) => {
@@ -148,7 +162,8 @@ export const GameScreen: React.FC = () => {
         GROUND_Y,
         state.walkPhase,
         state.angle,
-        deltaTime
+        deltaTime,
+        state.isGameOver
       );
 
       updateHUD(
@@ -156,13 +171,17 @@ export const GameScreen: React.FC = () => {
         physics.isDangerous(),
       );
 
-      setDistance(state.distance);
-
-      if (state.isGameOver) {
-        gameLoopRef.current?.stop();
-        const isNew = submitRecord(state.distance);
-        setIsNewRecord(isNew);
-        setTimeout(() => setPhase('over'), 800);
+      if (state.isGameOver && !gameOverFiredRef.current) {
+        gameOverFiredRef.current = true;
+        // Commit final distance to store only once at game over
+        setDistanceRef.current(state.distance);
+        const isNew = submitRecordRef.current(state.distance);
+        setIsNewRecordRef.current(isNew);
+        // Let the fall-over animation play (550ms) then show the game over screen
+        gameOverTimerRef.current = setTimeout(() => {
+          gameLoopRef.current?.stop();
+          setPhaseRef.current('over');
+        }, 800);
       }
     };
 
@@ -189,8 +208,10 @@ export const GameScreen: React.FC = () => {
       loop.stop();
       input.detach();
       if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
+      if (gameOverTimerRef.current) clearTimeout(gameOverTimerRef.current);
     };
-  }, [setupCanvas, setPhase, setDistance, setIsNewRecord, submitRecord, updateHUD]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setupCanvas, updateHUD]);
 
   return (
     <div className="game-screen" ref={containerRef}>
@@ -209,7 +230,10 @@ export const GameScreen: React.FC = () => {
       <div
         className="speech-bubble"
         ref={speechBubbleRef}
-        style={{ top: `${speechBubbleTopPx}px` }}
+        style={{
+          top: `${speechBubbleTopPx}px`,
+          left: `${CHARACTER_X}px`,
+        }}
       />
 
       {/* Touch hints */}
