@@ -22,6 +22,13 @@ export const VERLET_ITERATIONS = 10;
 
 export const WALK_CYCLE_MULTIPLIER = 2.5;
 
+// Footplant + 2-bone IK leg constants
+export const LEG_UPPER = 38;       // upper leg length (hip → knee) in px
+export const LEG_LOWER = 36;       // lower leg length (knee → foot) in px
+export const STEP_HEIGHT = 18;     // arc height during swing phase in px
+export const STEP_THRESHOLD = 22;  // how far foot can lag before stepping (px)
+export const STEP_DURATION = 0.38; // fraction of walk cycle for swing phase (0–1)
+
 export const COLORS = {
   bg: '#FFFFFF',
   line: '#222222',

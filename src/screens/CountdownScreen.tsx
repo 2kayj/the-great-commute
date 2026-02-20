@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { Physics } from '../engine/Physics';
 import { CharacterRenderer } from '../engine/CharacterRenderer';
 import { BackgroundRenderer } from '../engine/BackgroundRenderer';
 import {
@@ -25,12 +26,16 @@ export const CountdownScreen: React.FC = () => {
   const [count, setCount] = useState<number | 'GO'>(3);
   const [flash, setFlash] = useState(false);
 
-  const canvasRef    = useRef<HTMLCanvasElement>(null);
-  const rafRef       = useRef<number>(0);
-  const charRef      = useRef(new CharacterRenderer());
-  const bgRef        = useRef(new BackgroundRenderer());
-  const walkPhaseRef = useRef(0);
-  const lastTimeRef  = useRef(0);
+  const canvasRef   = useRef<HTMLCanvasElement>(null);
+  const rafRef      = useRef<number>(0);
+  const charRef     = useRef((() => {
+    const cr = new CharacterRenderer();
+    cr.warmUp(CHARACTER_X, GROUND_Y);
+    return cr;
+  })());
+  const bgRef       = useRef(new BackgroundRenderer());
+  const physicsRef  = useRef(new Physics());
+  const lastTimeRef = useRef(0);
 
   // Countdown logic
   useEffect(() => {
@@ -82,21 +87,25 @@ export const CountdownScreen: React.FC = () => {
     offscreen.height = CANVAS_HEIGHT;
     const offCtx = offscreen.getContext('2d')!;
 
-    const char = charRef.current;
-    const bg   = bgRef.current;
+    const char    = charRef.current;
+    const bg      = bgRef.current;
+    const physics = physicsRef.current;
+
+    physics.reset();
 
     const loop = (timestamp: number) => {
       const dt = Math.min((timestamp - (lastTimeRef.current || timestamp)) / 1000, 0.05);
       lastTimeRef.current = timestamp;
 
-      walkPhaseRef.current += dt * 2.2;
+      physics.update(dt, 0);
+      const state = physics.getState();
 
-      bg.update(dt, 80, 0);
-      char.update(CHARACTER_X, GROUND_Y, walkPhaseRef.current, 0, dt);
+      bg.update(dt, state.speed, 0);
+      char.update(CHARACTER_X, GROUND_Y, state.walkPhase, 0, dt, false, state.speed);
 
       offCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       bg.render(offCtx);
-      char.render(offCtx, CHARACTER_X, GROUND_Y, 0, walkPhaseRef.current, false);
+      char.render(offCtx, CHARACTER_X, GROUND_Y, 0, state.walkPhase, false);
 
       // Scale offscreen (390x844) → preview (390x844) — 1:1 here, but DPR handled
       ctx.clearRect(0, 0, PREVIEW_W, PREVIEW_H);

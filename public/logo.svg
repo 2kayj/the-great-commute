@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600" fill="none">
 
   <!--
-    황새 신입 출근 대작전 - 로고 v4 (캐릭터 + 장식 복원)
+    폐급 신입 출근 대작전 - 로고 v4 (캐릭터 + 장식 복원)
     600x600px | 배경 원형 fill 추가, stroke 제거
     장식: 별, 느낌표(!!), 땀방울, 동작선 복원
     라이트/다크 공용 (CSS media query)

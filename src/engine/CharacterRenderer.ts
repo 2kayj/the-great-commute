@@ -1,13 +1,42 @@
 import { VerletChain } from './VerletChain';
-import { COLORS } from '../utils/constants';
+import { COLORS, LEG_UPPER, LEG_LOWER, STEP_HEIGHT } from '../utils/constants';
 import { wobbleOffset } from '../utils/math';
+
+// ----- Footplant IK types -----
+
+interface FootState {
+  /** Current planted world position */
+  x: number;
+  y: number;
+  /** Previous planted position (start of swing arc) */
+  prevX: number;
+  prevY: number;
+  /** Target world position for the next step */
+  targetX: number;
+  targetY: number;
+  /** 0 = stance (on ground), 1 = swing (in air, 0→1 arc progress) */
+  swingT: number;
+  /** true while foot is airborne */
+  isSwinging: boolean;
+}
+
+// Segment length for leg Verlet chains: distribute total leg length evenly.
+// 4 nodes → 3 segments.
+const LEG_SEG_LENGTH = (LEG_UPPER + LEG_LOWER) / 3; // ≈ 24.7
+
+// Half the total stride width: swing foot lands this far ahead of hip center.
+// Keeping this value large enough ensures the stance foot (sliding backward)
+// is well behind the hip before the swing foot arrives in front.
+const STRIDE_FORWARD = 22;
 
 export class CharacterRenderer {
   private leftArm: VerletChain;
   private rightArm: VerletChain;
-  private leftLeg: VerletChain;
-  private rightLeg: VerletChain;
   private time: number = 0;
+
+  // IK + Verlet hybrid legs
+  private leftLegChain: VerletChain;
+  private rightLegChain: VerletChain;
 
   // Body dimensions
   private readonly bodyW = 22;
@@ -16,56 +45,69 @@ export class CharacterRenderer {
   private readonly neckLen = 10;
 
   // Fall-over animation state
-  // fallenProgress: 0 = upright, 1 = fully lying down
   private fallenProgress: number = 0;
-  // fallStartAngle: the physics angle at the moment game over was triggered
   private fallStartAngle: number = 0;
-  // fallDirection: +1 = fell right, -1 = fell left
   private fallDirection: number = 1;
+
+  // Footplant state (IK legs)
+  private leftFoot: FootState;
+  private rightFoot: FootState;
+  /** Last walkPhase half-cycle index (floor(walkPhase / PI)) for step triggering */
+  private lastHalfCycle: number = -1;
 
   constructor() {
     this.leftArm  = new VerletChain(4, 10, 0.3, 0.96);
     this.rightArm = new VerletChain(4, 10, 0.3, 0.96);
-    this.leftLeg  = new VerletChain(5, 17, 0.4, 0.92, 1, 4);
-    this.rightLeg = new VerletChain(5, 17, 0.4, 0.92, 1, 4);
-    // neck is now rendered as a fixed line — no VerletChain needed
 
-    // Give each limb a small random initial velocity so they start
-    // in motion rather than frozen. Verlet velocity = (pos - prevPos),
-    // so shifting prevPos by a small offset produces an immediate impulse.
-    // Anchor node (index 0) is left untouched — only free nodes get the kick.
+    // Leg chains: 4 nodes, gravity pulls down slightly, high damping for slow wobble
+    // gravityDir = +1 (downward). gravity value is modest so legs don't droop too much.
+    this.leftLegChain  = new VerletChain(4, LEG_SEG_LENGTH, 0.35, 0.93, 1);
+    this.rightLegChain = new VerletChain(4, LEG_SEG_LENGTH, 0.35, 0.93, 1);
+
+    // Feet start at rest (will be set properly on first update)
+    this.leftFoot  = { x: 0, y: 0, prevX: 0, prevY: 0, targetX: 0, targetY: 0, swingT: 0, isSwinging: false };
+    this.rightFoot = { x: 0, y: 0, prevX: 0, prevY: 0, targetX: 0, targetY: 0, swingT: 0, isSwinging: false };
+
     this.applyInitialJitter(this.leftArm.nodes,  2, 5);
     this.applyInitialJitter(this.rightArm.nodes, 2, 5);
-    this.applyInitialJitter(this.leftLeg.nodes,  4, 8);
-    this.applyInitialJitter(this.rightLeg.nodes, 4, 8);
+    this.applyInitialJitter(this.leftLegChain.nodes,  1, 4);
+    this.applyInitialJitter(this.rightLegChain.nodes, 1, 4);
   }
 
-  /**
-   * Shifts `prevX`/`prevY` of non-anchor nodes by a random amount within
-   * ±maxOffset px so that Verlet integration starts with a small velocity.
-   * The jitter grows slightly toward the tip of the chain (distal amplification)
-   * to mimic the natural way loose limbs swing from their root.
-   *
-   * @param nodes      Array of VerletNode belonging to one chain
-   * @param minOffset  Minimum absolute shift in pixels
-   * @param maxOffset  Maximum absolute shift in pixels (at the tip)
-   */
   private applyInitialJitter(
     nodes: { x: number; y: number; prevX: number; prevY: number; pinned: boolean }[],
     minOffset: number,
     maxOffset: number
   ): void {
     for (let i = 1; i < nodes.length; i++) {
-      // Scale amplitude toward the tip: nodes deeper in the chain swing more
       const t = i / (nodes.length - 1);
       const amplitude = minOffset + (maxOffset - minOffset) * t;
-
       const jx = (Math.random() * 2 - 1) * amplitude;
       const jy = (Math.random() * 2 - 1) * amplitude;
-
-      // Subtract from prevPos → velocity on next step = pos - prevPos = +jx, +jy
       nodes[i].prevX = nodes[i].x - jx;
       nodes[i].prevY = nodes[i].y - jy;
+    }
+  }
+
+  // ----- Footplant helpers -----
+
+  /**
+   * Advance swing arc for one foot. swingSpeed = fraction of arc per second.
+   */
+  private advanceFoot(foot: FootState, dt: number, swingSpeed: number): void {
+    if (!foot.isSwinging) return;
+    foot.swingT = Math.min(1, foot.swingT + dt * swingSpeed);
+
+    const t = foot.swingT;
+    // Linear interpolation in X
+    foot.x = foot.prevX + (foot.targetX - foot.prevX) * t;
+    // Parabolic arc in Y: arc reaches STEP_HEIGHT at t=0.5
+    foot.y = foot.prevY + (foot.targetY - foot.prevY) * t - STEP_HEIGHT * 4 * t * (1 - t);
+
+    if (foot.swingT >= 1) {
+      foot.x = foot.targetX;
+      foot.y = foot.targetY;
+      foot.isSwinging = false;
     }
   }
 
@@ -75,78 +117,202 @@ export class CharacterRenderer {
     walkPhase: number,
     angle: number,
     deltaTime: number,
-    isFallen: boolean = false
+    isFallen: boolean = false,
+    speed: number = 0
   ): void {
     if (isFallen) {
-      // Advance fall animation — takes ~0.55s to complete
       const FALL_DURATION = 0.55;
       if (this.fallenProgress < 1) {
         this.fallenProgress = Math.min(1, this.fallenProgress + deltaTime / FALL_DURATION);
-        // Only tick time during the fall transition; freeze once fully lying down
         this.time += deltaTime;
       }
-      // No Verlet updates needed while lying down
       return;
     }
 
-    // Reset fall state whenever we're not fallen (e.g. after retry)
     this.fallenProgress = 0;
     this.fallStartAngle = angle;
     this.fallDirection = angle >= 0 ? 1 : -1;
-
-    // Tick animation time only while walking (not while fallen)
     this.time += deltaTime;
 
     const bodyTopY = groundY - this.bodyH * 2 - this.neckLen - this.headR * 2 - 20;
-
     const bodySwayX = Math.sin(walkPhase * 2) * 3;
     const bodyBobY  = Math.abs(Math.sin(walkPhase)) * -4;
-
     const bx = centerX + bodySwayX;
     const by = bodyTopY + bodyBobY;
 
-    // Ellipse center is at (bx, by + bodyH) where bodyH = 18, so center = by + 18
-    // Ellipse rx = bodyW(22), ry = bodyH(18)
-    // Shoulder: upper side of ellipse, angle ~-PI/2 shifted outward
-    // At the widest horizontal point (equator level) the ellipse edge is at ±rx from center
-    // We place shoulders at the ellipse edge at the upper quarter: y = centerY - ry * 0.5
-    const bodyCenterY = by + this.bodyH; // ellipse center Y
-    const shoulderOffsetY = -this.bodyH * 0.5; // upper quarter of ellipse
+    // Shoulders
+    const bodyCenterY = by + this.bodyH;
+    const shoulderOffsetY = -this.bodyH * 0.5;
     const shoulderY = bodyCenterY + shoulderOffsetY;
-    // At that Y offset, the ellipse x-radius is: rx * sqrt(1 - (offsetY/ry)^2)
     const shoulderXRadius = this.bodyW * Math.sqrt(1 - Math.pow(shoulderOffsetY / this.bodyH, 2));
 
-    // Arm anchors: pinned exactly to ellipse surface
     const leftShoulderX  = bx - shoulderXRadius;
     const rightShoulderX = bx + shoulderXRadius;
 
     const armSwing = Math.sin(walkPhase) * 0.6;
-    const leftArmAnchorX  = leftShoulderX  + Math.sin(-armSwing) * 8;
-    const leftArmAnchorY  = shoulderY      + Math.cos(-armSwing) * 4;
-    const rightArmAnchorX = rightShoulderX + Math.sin(armSwing)  * 8;
-    const rightArmAnchorY = shoulderY      + Math.cos(armSwing)  * 4;
+    this.leftArm.update(
+      leftShoulderX  + Math.sin(-armSwing) * 8,
+      shoulderY      + Math.cos(-armSwing) * 4
+    );
+    this.rightArm.update(
+      rightShoulderX + Math.sin(armSwing)  * 8,
+      shoulderY      + Math.cos(armSwing)  * 4
+    );
 
-    this.leftArm.update(leftArmAnchorX, leftArmAnchorY);
-    this.rightArm.update(rightArmAnchorX, rightArmAnchorY);
-
-    // Leg anchors: pinned to lower ellipse edge
+    // ----- Hip position -----
     const hipOffsetY = this.bodyH * 0.6;
     const hipY = bodyCenterY + hipOffsetY;
-    const hipXRadius = this.bodyW * Math.sqrt(1 - Math.pow(hipOffsetY / this.bodyH, 2));
+    const hipX = bx;
 
-    const leftHipX  = bx - hipXRadius * 0.5;
-    const rightHipX = bx + hipXRadius * 0.5;
+    // Stride offsets scaled by tilt angle.
+    const angleScale = 1 + Math.abs(angle) * 0.5;
+    const forwardTarget = hipX + STRIDE_FORWARD * angleScale;
 
-    const hipSwing = Math.sin(walkPhase) * 12;
-    const leftLegAnchorX  = leftHipX  - hipSwing;
-    const leftLegAnchorY  = hipY;
-    const rightLegAnchorX = rightHipX + hipSwing;
-    const rightLegAnchorY = hipY;
+    // ----- Initialise feet on first frame -----
+    const isFirstFrame = (this.leftFoot.x === 0 && this.leftFoot.y === 0);
+    if (isFirstFrame) {
+      // Left foot starts at hipX + 7, right foot starts ahead —
+      // natural mid-stride split so legs never start overlapping.
+      const leftInitX  = hipX - 8;
+      const rightInitX = forwardTarget;
+      const initY = groundY;
 
-    this.leftLeg.update(leftLegAnchorX, leftLegAnchorY);
-    this.rightLeg.update(rightLegAnchorX, rightLegAnchorY);
+      this.leftFoot.x  = leftInitX;  this.leftFoot.y  = initY;
+      this.rightFoot.x = rightInitX; this.rightFoot.y = initY;
+      this.leftFoot.prevX  = leftInitX;  this.leftFoot.prevY  = initY;
+      this.rightFoot.prevX = rightInitX; this.rightFoot.prevY = initY;
 
-    // Neck: no Verlet update — neck is fixed to body top, head wobbles separately
+      // Initialise leg chain node positions so chains start near correct pose
+      this.initLegChain(this.leftLegChain,  hipX - 5, hipY, leftInitX,  initY);
+      this.initLegChain(this.rightLegChain, hipX + 5, hipY, rightInitX, initY);
+    }
+
+    // ----- Swing speed proportional to angle magnitude -----
+    const swingSpeed = (1 / 0.25) * (1 + Math.abs(angle) * 0.8);
+
+    // Advance ongoing swings
+    this.advanceFoot(this.leftFoot,  deltaTime, swingSpeed);
+    this.advanceFoot(this.rightFoot, deltaTime, swingSpeed);
+
+    // Slide stance feet backward to match background scroll
+    const SCROLL_FACTOR = 1.0;
+    const slideAmount = speed * deltaTime * SCROLL_FACTOR;
+    if (!this.leftFoot.isSwinging)  this.leftFoot.x  -= slideAmount;
+    if (!this.rightFoot.isSwinging) this.rightFoot.x -= slideAmount;
+
+    // ----- Hard clamp: stance foot can never lag more than BACK_LIMIT behind hip -----
+    // This is the primary protection against feet trailing too far at high speeds.
+    // When speed is high, the slide-per-cycle can exceed the stride length, so
+    // we force a new step the moment the foot crosses this threshold.
+    const BACK_LIMIT = STRIDE_FORWARD + 8; // ~30px — just beyond the forward landing zone
+    if (!this.leftFoot.isSwinging && (hipX - this.leftFoot.x) > BACK_LIMIT) {
+      this.startStep(this.leftFoot, forwardTarget, groundY);
+    }
+    if (!this.rightFoot.isSwinging && (hipX - this.rightFoot.x) > BACK_LIMIT) {
+      this.startStep(this.rightFoot, forwardTarget, groundY);
+    }
+
+    // ----- Decide when to trigger next step -----
+    // Feet alternate: one foot always swings to the FRONT (forwardTarget),
+    // the other remains as stance and slides backward with the scroll.
+    // This guarantees the two foot tips are always on opposite sides of the
+    // hip, preventing them from converging at the same x position.
+    const currentHalfCycle = Math.floor(walkPhase / Math.PI);
+
+    if (currentHalfCycle !== this.lastHalfCycle) {
+      this.lastHalfCycle = currentHalfCycle;
+
+      if (currentHalfCycle % 2 === 0) {
+        // Left foot swings forward
+        if (!this.leftFoot.isSwinging) {
+          this.startStep(this.leftFoot, forwardTarget, groundY);
+        }
+      } else {
+        // Right foot swings forward
+        if (!this.rightFoot.isSwinging) {
+          this.startStep(this.rightFoot, forwardTarget, groundY);
+        }
+      }
+    }
+
+    // ----- Safety: force step if stance foot drifts too far behind hip -----
+    // (Fallback for cases the BACK_LIMIT clamp didn't catch, e.g. lateral drift)
+    const MAX_X_REACH = (LEG_UPPER + LEG_LOWER) * 0.85;
+    if (!this.leftFoot.isSwinging && Math.abs(this.leftFoot.x - hipX) > MAX_X_REACH) {
+      this.startStep(this.leftFoot, forwardTarget, groundY);
+    }
+    if (!this.rightFoot.isSwinging && Math.abs(this.rightFoot.x - hipX) > MAX_X_REACH) {
+      this.startStep(this.rightFoot, forwardTarget, groundY);
+    }
+
+    // ----- Hybrid Verlet leg update -----
+    // Hip anchor offsets match renderIKLeg hip positions
+    const leftHipX  = hipX - 5;
+    const rightHipX = hipX + 5;
+
+    this.updateLegChain(this.leftLegChain,  leftHipX,  hipY, this.leftFoot);
+    this.updateLegChain(this.rightLegChain, rightHipX, hipY, this.rightFoot);
+  }
+
+  /**
+   * Initialise a leg chain so nodes are distributed from hip to foot with a
+   * natural knee-bend shape.  Node[1] (the "knee") is nudged slightly backward
+   * (negative X) so the leg rests in a believable upright stance rather than a
+   * perfectly straight vertical line.
+   */
+  private initLegChain(
+    chain: VerletChain,
+    hipX: number, hipY: number,
+    footX: number, footY: number
+  ): void {
+    const n = chain.nodes.length;
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1);
+      const baseX = hipX + (footX - hipX) * t;
+      const baseY = hipY + (footY - hipY) * t;
+
+      // For the mid-point node (knee area) push it backward slightly so the
+      // chain starts with a gentle bend rather than a rigid straight line.
+      // "Backward" in screen space means negative X (the character faces right).
+      const kneeBend = (n === 4 && i === 1) ? -6 : 0;
+
+      chain.nodes[i].x     = baseX + kneeBend;
+      chain.nodes[i].y     = baseY;
+      chain.nodes[i].prevX = chain.nodes[i].x;
+      chain.nodes[i].prevY = chain.nodes[i].y;
+    }
+    chain.nodes[0].pinned = true;
+  }
+
+  /**
+   * Run one Verlet physics step for a leg chain, then lerp the tip node toward
+   * the IK foot position. This gives natural inertia/wobble in the middle joints
+   * while the foot broadly follows the IK target.
+   */
+  private updateLegChain(
+    chain: VerletChain,
+    hipX: number, hipY: number,
+    foot: FootState
+  ): void {
+    // Step 1: Verlet physics (anchor at hip)
+    chain.update(hipX, hipY);
+
+    // Step 2: Pull the tip node toward the IK foot position.
+    // lerpFactor 0.8 → foot tracks IK closely but with some inertia/overshoot.
+    // During swing (foot airborne) use a slightly softer pull so the wobble is more visible.
+    const lerpFactor = foot.isSwinging ? 0.72 : 0.82;
+    const tip = chain.nodes[chain.nodes.length - 1];
+    tip.x += (foot.x - tip.x) * lerpFactor;
+    tip.y += (foot.y - tip.y) * lerpFactor;
+  }
+
+  private startStep(foot: FootState, targetX: number, targetY: number): void {
+    foot.prevX = foot.x;
+    foot.prevY = foot.y;
+    foot.targetX = targetX;
+    foot.targetY = targetY;
+    foot.swingT = 0;
+    foot.isSwinging = true;
   }
 
   render(
@@ -169,15 +335,14 @@ export class CharacterRenderer {
 
     const bodyH2 = this.bodyH * 2;
     const bodyTopY = groundY - bodyH2 - this.neckLen - this.headR * 2 - 20;
-
     const bodySwayX = Math.sin(walkPhase * 2) * 3;
     const bodyBobY  = Math.abs(Math.sin(walkPhase)) * -4;
     const bx = centerX + bodySwayX;
     const by = bodyTopY + bodyBobY;
 
-    // Legs (behind body) - Verlet chain
-    this.leftLeg.render(ctx, 3, 2, COLORS.line);
-    this.rightLeg.render(ctx, 3, 2, COLORS.line);
+    // ----- Render hybrid Verlet legs (behind body) -----
+    this.renderVerletLeg(ctx, this.leftLegChain);
+    this.renderVerletLeg(ctx, this.rightLegChain);
 
     // Body
     ctx.save();
@@ -185,7 +350,6 @@ export class CharacterRenderer {
     ctx.fillStyle = COLORS.bg;
     ctx.lineWidth = 2.5;
 
-    // Wobble on body outline
     const t = this.time;
     ctx.beginPath();
     const wx = wobbleOffset(1, t, 1.5);
@@ -200,7 +364,7 @@ export class CharacterRenderer {
     ctx.fill();
     ctx.stroke();
 
-    // Necktie (small triangle)
+    // Necktie
     ctx.fillStyle = '#333333';
     ctx.strokeStyle = COLORS.line;
     ctx.lineWidth = 1;
@@ -215,32 +379,85 @@ export class CharacterRenderer {
 
     // Arms (in front)
     this.leftArm.render(ctx, 2.5, 1.5, COLORS.line);
-
-    // Right arm + coffee tray
     this.rightArm.render(ctx, 2.5, 1.5, COLORS.line);
     this.renderCoffeeTray(ctx);
 
-    // Neck — fixed straight line from body top upward (no Verlet physics)
+    // Neck
     const neckBaseX = bx;
     const neckBaseY = by - 2;
-    const neckTopX = neckBaseX;
-    const neckTopY = neckBaseY - this.neckLen;
-
     ctx.save();
     ctx.strokeStyle = COLORS.line;
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(neckBaseX, neckBaseY);
-    ctx.lineTo(neckTopX, neckTopY);
+    ctx.lineTo(neckBaseX, neckBaseY - this.neckLen);
     ctx.stroke();
     ctx.restore();
 
-    // Head — neck top is the anchor; head circle wobbles around that point
-    const headX = neckTopX + wobbleOffset(10, t, 2);
-    const headY = neckTopY - this.headR + wobbleOffset(11, t, 1.5);
-
+    // Head
+    const headX = neckBaseX + wobbleOffset(10, t, 2);
+    const headY = neckBaseY - this.neckLen - this.headR + wobbleOffset(11, t, 1.5);
     this.renderHead(ctx, headX, headY, false);
+
+    ctx.restore();
+  }
+
+  /**
+   * Renders a hybrid Verlet leg by drawing curved segments through the chain nodes.
+   * Node 0 = hip (anchor), Node 3 = foot (IK-tracked).
+   * Upper segment (0→1) is thicker; lower segment tapers; foot dot at tip.
+   */
+  private renderVerletLeg(
+    ctx: CanvasRenderingContext2D,
+    chain: VerletChain
+  ): void {
+    const nodes = chain.nodes;
+    if (nodes.length < 2) return;
+
+    ctx.save();
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Draw curved path through all nodes using quadraticCurveTo midpoints
+    // Upper segment: nodes[0] → nodes[1] (thicker)
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(nodes[0].x, nodes[0].y);
+
+    if (nodes.length === 4) {
+      // Upper leg: hip → mid1 via smooth curve
+      const upperCtrlX = (nodes[0].x + nodes[1].x) / 2;
+      const upperCtrlY = (nodes[0].y + nodes[1].y) / 2;
+      ctx.quadraticCurveTo(upperCtrlX, upperCtrlY, nodes[1].x, nodes[1].y);
+      ctx.stroke();
+
+      // Lower leg: mid1 → mid2 → foot (taper width)
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(nodes[1].x, nodes[1].y);
+      // Use nodes[2] as control point for the curve to nodes[3]
+      ctx.quadraticCurveTo(nodes[2].x, nodes[2].y, nodes[3].x, nodes[3].y);
+      ctx.stroke();
+    } else {
+      // Fallback for other node counts: simple polyline
+      for (let i = 1; i < nodes.length; i++) {
+        const w = 3 - (i / (nodes.length - 1)) * 0.5;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ctx.moveTo(nodes[i - 1].x, nodes[i - 1].y);
+        ctx.lineTo(nodes[i].x, nodes[i].y);
+        ctx.stroke();
+      }
+    }
+
+    // Foot dot at the tip node
+    const tip = nodes[nodes.length - 1];
+    ctx.fillStyle = COLORS.line;
+    ctx.beginPath();
+    ctx.arc(tip.x, tip.y, 3, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.restore();
   }
@@ -259,24 +476,21 @@ export class CharacterRenderer {
     ctx.fillStyle = COLORS.bg;
     ctx.lineWidth = 2.5;
 
-    // Head circle — x/y already include wobble offset supplied by caller when not fallen
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    // Eyes — slight independent wobble when walking, static when fallen
-    const eyeWobbleX = fallen ? 0 : wobbleOffset(12, t, 0.5);
+    const eyeWobbleX  = fallen ? 0 : wobbleOffset(12, t, 0.5);
     const eyeWobbleX2 = fallen ? 0 : wobbleOffset(13, t, 0.5);
     ctx.fillStyle = COLORS.line;
     ctx.beginPath();
-    ctx.arc(x - 5 + eyeWobbleX, y - 3, 2, 0, Math.PI * 2);
+    ctx.arc(x - 5 + eyeWobbleX,  y - 3, 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
     ctx.arc(x + 5 + eyeWobbleX2, y - 3, 2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Beak (triangle pointing down) — always normal
     ctx.fillStyle = COLORS.gold;
     ctx.strokeStyle = COLORS.line;
     ctx.lineWidth = 1.5;
@@ -300,11 +514,9 @@ export class CharacterRenderer {
 
     ctx.save();
     ctx.translate(tx, ty);
-    // Only a tiny wobble around horizontal - ignore arm angle entirely
     const trayWobble = wobbleOffset(20, this.time, 0.06);
     ctx.rotate(trayWobble);
 
-    // Tray line (slightly wobbly curve)
     const t = this.time;
     ctx.strokeStyle = COLORS.line;
     ctx.lineWidth = 3;
@@ -314,10 +526,8 @@ export class CharacterRenderer {
     ctx.quadraticCurveTo(0, wobbleOffset(21, t, 1.5), 18, 0);
     ctx.stroke();
 
-    // Cup 1
     this.renderCup(ctx, -12, -12);
-    // Cup 2
-    this.renderCup(ctx, 4, -12);
+    this.renderCup(ctx, 4,   -12);
 
     ctx.restore();
   }
@@ -332,20 +542,10 @@ export class CharacterRenderer {
     ctx.fill();
     ctx.stroke();
 
-    // Coffee fill (top portion)
     ctx.fillStyle = COLORS.coffee;
     ctx.fillRect(x, y, w, 4);
   }
 
-  /**
-   * Renders the fall-over animation.
-   *
-   * Phase 1 (fallenProgress 0→1): character rotates from its current physics
-   *   angle toward lying flat (±90°), pivoting around the foot contact point.
-   *   Uses easeOutBounce-like curve so it hits the ground with a slight thud.
-   *
-   * When fully fallen (fallenProgress === 1): renders the static lying pose.
-   */
   private renderFallingOver(
     ctx: CanvasRenderingContext2D,
     cx: number,
@@ -353,68 +553,28 @@ export class CharacterRenderer {
     _currentAngle: number
   ): void {
     const p = this.fallenProgress;
-
-    // Use the angle at first frame of falling (captured in update())
-    // If fallenProgress just started this frame, fallStartAngle was set last frame.
     const startAngle = this.fallStartAngle;
     const dir = this.fallDirection;
-
-    // Target angle: lying flat = ±(PI/2)
     const targetAngle = dir * (Math.PI / 2);
-
-    // Easing: fast fall with a tiny overshoot at the end (thud feel)
     const eased = this.easeOutBack(p);
     const lerpedAngle = startAngle + (targetAngle - startAngle) * eased;
 
-    // Both falling phase and fully-fallen phase: rotate the standing pose around the foot pivot.
-    // When p < 1: interpolated angle. When p === 1: locked at ±PI/2 (fully lying flat).
     ctx.save();
     ctx.translate(cx, groundY);
     ctx.rotate(lerpedAngle);
     ctx.translate(-cx, -groundY);
 
-    this.renderStandingPose(ctx, cx, groundY, 0, false);
-
-    ctx.restore();
-  }
-
-  /**
-   * Renders the character in its normal upright standing pose (no walk animation).
-   * Used during the fall-over transition.
-   */
-  private renderStandingPose(
-    ctx: CanvasRenderingContext2D,
-    cx: number,
-    groundY: number,
-    _walkPhase: number,
-    _wobble: boolean
-  ): void {
+    // Render the character using the current Verlet leg state so there is no
+    // sudden shape change when transitioning from walking to fallen.
     const bodyH2 = this.bodyH * 2;
     const bodyTopY = groundY - bodyH2 - this.neckLen - this.headR * 2 - 20;
     const bx = cx;
     const by = bodyTopY;
     const bodyCenterY = by + this.bodyH;
 
-    // Legs — straight down, limp (no walk swing)
-    ctx.strokeStyle = COLORS.line;
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-
-    // Left leg
-    const leftHipX = bx - 6;
-    const rightHipX = bx + 6;
-    const hipY = bodyCenterY + this.bodyH * 0.6;
-
-    ctx.beginPath();
-    ctx.moveTo(leftHipX, hipY);
-    // Limp — slightly splayed outward
-    ctx.quadraticCurveTo(leftHipX - 8, hipY + 20, leftHipX - 6, groundY);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(rightHipX, hipY);
-    ctx.quadraticCurveTo(rightHipX + 8, hipY + 20, rightHipX + 6, groundY);
-    ctx.stroke();
+    // Verlet legs — same as the normal render path, preserving last physics state
+    this.renderVerletLeg(ctx, this.leftLegChain);
+    this.renderVerletLeg(ctx, this.rightLegChain);
 
     // Body
     ctx.save();
@@ -439,64 +599,42 @@ export class CharacterRenderer {
     ctx.stroke();
     ctx.restore();
 
-    // Arms — hanging limp at sides
+    // Arms
+    this.leftArm.render(ctx, 2.5, 1.5, COLORS.line);
+    this.rightArm.render(ctx, 2.5, 1.5, COLORS.line);
+    this.renderCoffeeTray(ctx);
+
+    // Neck
+    const neckBaseX = bx;
+    const neckBaseY = by - 2;
+    ctx.save();
     ctx.strokeStyle = COLORS.line;
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
-
-    const shoulderY = bodyCenterY - this.bodyH * 0.5;
-
-    // Left arm limp
     ctx.beginPath();
-    ctx.moveTo(bx - this.bodyW + 4, shoulderY);
-    ctx.quadraticCurveTo(bx - this.bodyW - 4, shoulderY + 18, bx - this.bodyW, shoulderY + 38);
+    ctx.moveTo(neckBaseX, neckBaseY);
+    ctx.lineTo(neckBaseX, neckBaseY - this.neckLen);
     ctx.stroke();
+    ctx.restore();
 
-    // Right arm limp (no tray — dropped)
-    ctx.beginPath();
-    ctx.moveTo(bx + this.bodyW - 4, shoulderY);
-    ctx.quadraticCurveTo(bx + this.bodyW + 4, shoulderY + 18, bx + this.bodyW, shoulderY + 38);
-    ctx.stroke();
+    // Head
+    const headX = neckBaseX;
+    const headY = neckBaseY - this.neckLen - this.headR;
+    this.renderHead(ctx, headX, headY, true);
 
-    // Neck — straight up
-    const neckBaseY = by - 2;
-    const headY = neckBaseY - this.neckLen;
-    ctx.strokeStyle = COLORS.line;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(bx, neckBaseY);
-    ctx.lineTo(bx, headY);
-    ctx.stroke();
-
-    // Head — fixed position, no wobble during fall animation
-    this.renderHead(ctx, bx, headY - this.headR, true);
+    ctx.restore();
   }
 
-  /**
-   * easeOutQuart: decelerates quickly to a hard stop with no overshoot.
-   * Replaces the previous easeOutBack to ensure the character locks in place
-   * exactly at the fully-fallen position without any bounce or jitter.
-   */
   private easeOutBack(t: number): number {
     return 1 - Math.pow(1 - t, 4);
   }
 
-  /**
-   * Runs the physics simulation for a given number of frames at a fixed delta
-   * time without requiring an external game loop. Call this immediately after
-   * construction to bring the chain into a natural walking pose before the
-   * first rendered frame.
-   *
-   * @param centerX  Character X position (CHARACTER_X constant)
-   * @param groundY  Ground Y position (GROUND_Y constant)
-   * @param frames   Number of physics steps to pre-simulate (default 120 ≈ 2s at 60fps)
-   */
-  warmUp(centerX: number, groundY: number, frames: number = 120): void {
+  warmUp(centerX: number, groundY: number, frames: number = 120, speed: number = 80): void {
     const dt = 1 / 60;
     for (let i = 0; i < frames; i++) {
       this.time += dt;
       const phase = this.time * 2.2;
-      this.update(centerX, groundY, phase, 0, dt, false);
+      this.update(centerX, groundY, phase, 0, dt, false, speed);
     }
   }
 

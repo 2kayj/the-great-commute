@@ -167,7 +167,8 @@ export const GameScreen: React.FC = () => {
         state.walkPhase,
         state.angle,
         deltaTime,
-        state.isGameOver
+        state.isGameOver,
+        state.speed
       );
 
       updateHUD(

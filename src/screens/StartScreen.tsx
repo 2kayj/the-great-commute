@@ -28,7 +28,11 @@ export const StartScreen: React.FC = () => {
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const sceneAreaRef = useRef<HTMLDivElement>(null);
   const rafRef       = useRef<number>(0);
-  const charRef      = useRef(new CharacterRenderer());
+  const charRef      = useRef((() => {
+    const cr = new CharacterRenderer();
+    cr.warmUp(CHARACTER_X, GROUND_Y);
+    return cr;
+  })());
   const bgRef        = useRef(new BackgroundRenderer());
   const offscreenRef = useRef<HTMLCanvasElement | null>(null);
   const walkPhaseRef = useRef(0);
@@ -68,7 +72,7 @@ export const StartScreen: React.FC = () => {
       walkPhaseRef.current += dt * 2.2;
 
       bg.update(dt, 80, 0);
-      char.update(CHARACTER_X, GROUND_Y, walkPhaseRef.current, 0, dt);
+      char.update(CHARACTER_X, GROUND_Y, walkPhaseRef.current, 0, dt, false, 80);
 
       // Render to offscreen at full resolution
       offCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -102,7 +106,7 @@ export const StartScreen: React.FC = () => {
       {/* ── 타이틀 영역 ── */}
       <div className="title-area">
         <div className="game-title">
-          <span className="underline-hand">황새 신입</span>
+          <span className="underline-hand">폐급 신입</span>
           <br />
           출근 대작전
         </div>
