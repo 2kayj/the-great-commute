@@ -7,6 +7,7 @@ import { CharacterRenderer } from '../engine/CharacterRenderer';
 import { BackgroundRenderer } from '../engine/BackgroundRenderer';
 import { InputManager } from '../engine/InputManager';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, CHARACTER_X, GROUND_Y } from '../utils/constants';
+import { FollowerManager } from '../engine/followers/FollowerManager';
 import './GameScreen.css';
 
 const SPEECH_MESSAGES: Record<number, string> = {
@@ -35,6 +36,7 @@ export const GameScreen: React.FC = () => {
     return cr;
   })());
   const backgroundRef     = useRef<BackgroundRenderer>(new BackgroundRenderer());
+  const followerManagerRef = useRef<FollowerManager>(new FollowerManager());
   const inputRef          = useRef<InputManager>(new InputManager());
   const directionRef      = useRef<-1 | 0 | 1>(0);
   const gameOverFiredRef  = useRef<boolean>(false);
@@ -138,13 +140,15 @@ export const GameScreen: React.FC = () => {
     const ctx = setupCanvas();
     if (!ctx) return;
 
-    const physics    = physicsRef.current;
-    const character  = characterRef.current;
-    const background = backgroundRef.current;
-    const input      = inputRef.current;
+    const physics         = physicsRef.current;
+    const character       = characterRef.current;
+    const background      = backgroundRef.current;
+    const followerManager = followerManagerRef.current;
+    const input           = inputRef.current;
 
     physics.reset();
     background.reset();
+    followerManager.reset();
     gameOverFiredRef.current = false;
 
     if (containerRef.current) {
@@ -171,6 +175,8 @@ export const GameScreen: React.FC = () => {
         state.speed
       );
 
+      followerManager.update(deltaTime, state);
+
       updateHUD(
         state.distance,
         physics.isDangerous(),
@@ -193,6 +199,8 @@ export const GameScreen: React.FC = () => {
     const render = () => {
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       background.render(ctx);
+
+      followerManager.render(ctx, GROUND_Y);
 
       const state = physics.getState();
       character.render(
