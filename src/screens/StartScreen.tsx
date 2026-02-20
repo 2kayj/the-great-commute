@@ -11,22 +11,22 @@ import {
 } from '../utils/constants';
 import './StartScreen.css';
 
-// Preview canvas size in CSS px
+// Preview canvas logical width (height is determined by scene-area container at runtime)
 const PREVIEW_W = 390;
-const PREVIEW_H = 330;
 
 // How many px above GROUND_Y we want to show in the preview.
 // Buildings can be up to ~260px tall (GROUND_Y - 260 = 460).
 // We crop from (GROUND_Y - CROP_ABOVE_GROUND) to (GROUND_Y + CROP_BELOW_GROUND).
 const CROP_ABOVE_GROUND = 310; // show 310px of building above ground line
 const CROP_BELOW_GROUND = 20;  // show ground + a bit of pavement below
-const CROP_TOTAL = CROP_ABOVE_GROUND + CROP_BELOW_GROUND; // 220px == PREVIEW_H
+const CROP_TOTAL = CROP_ABOVE_GROUND + CROP_BELOW_GROUND; // 330px default
 
 export const StartScreen: React.FC = () => {
   const { setPhase }     = useGameStore();
   const { bestDistance } = useRecordStore();
 
   const canvasRef    = useRef<HTMLCanvasElement>(null);
+  const sceneAreaRef = useRef<HTMLDivElement>(null);
   const rafRef       = useRef<number>(0);
   const charRef      = useRef(new CharacterRenderer());
   const bgRef        = useRef(new BackgroundRenderer());
@@ -38,11 +38,15 @@ export const StartScreen: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Read actual scene-area container height to support responsive layouts
+    const containerH = sceneAreaRef.current?.clientHeight ?? CROP_TOTAL;
+    const previewH = containerH > 0 ? containerH : CROP_TOTAL;
+
     const dpr = window.devicePixelRatio || 1;
     canvas.width  = PREVIEW_W * dpr;
-    canvas.height = PREVIEW_H * dpr;
+    canvas.height = previewH * dpr;
     canvas.style.width  = `${PREVIEW_W}px`;
-    canvas.style.height = `${PREVIEW_H}px`;
+    canvas.style.height = `${previewH}px`;
 
     const ctx = canvas.getContext('2d')!;
     ctx.scale(dpr, dpr);
@@ -75,13 +79,13 @@ export const StartScreen: React.FC = () => {
       // srcY starts CROP_ABOVE_GROUND px above GROUND_Y.
       const srcY = GROUND_Y - CROP_ABOVE_GROUND;
 
-      ctx.clearRect(0, 0, PREVIEW_W, PREVIEW_H);
+      ctx.clearRect(0, 0, PREVIEW_W, previewH);
       ctx.drawImage(
         offscreen,
         0,           srcY,        // source origin
-        CANVAS_WIDTH, CROP_TOTAL, // source size  (390 x 220)
+        CANVAS_WIDTH, CROP_TOTAL, // source size  (390 x CROP_TOTAL)
         0, 0,                     // dest origin
-        PREVIEW_W,   PREVIEW_H   // dest size    (390 x 220 — 1:1, no scaling)
+        PREVIEW_W,   previewH    // dest size    (fits container)
       );
 
       rafRef.current = requestAnimationFrame(loop);
@@ -106,7 +110,7 @@ export const StartScreen: React.FC = () => {
       </div>
 
       {/* ── 애니메이션 캔버스 영역 ── */}
-      <div className="scene-area">
+      <div className="scene-area" ref={sceneAreaRef}>
         <canvas ref={canvasRef} className="preview-canvas" />
       </div>
 

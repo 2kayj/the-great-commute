@@ -29,6 +29,13 @@
   z-index: 1;
 }
 
+@media (max-width: 430px) {
+  .cd-canvas {
+    width: 100dvw !important;
+    height: 100dvh !important;
+  }
+}
+
 /* Countdown overlay sits above the canvas */
 .cd-center {
   position: absolute;
