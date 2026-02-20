@@ -160,48 +160,83 @@ export class DogFollower extends BaseFollower {
   private renderHead(ctx: CanvasRenderingContext2D, bodyX: number, bodyY: number): void {
     const headX = bodyX + 14;
     const headY = bodyY - 18;
-    const headR = 8;
+    const headR = 10;
 
-    // Ears (triangles)
-    ctx.fillStyle = '#EEEEEE';
     ctx.strokeStyle = '#222222';
     ctx.lineWidth = 1.5;
 
-    // Left ear
+    // 1. Left ear (drawn behind head)
+    ctx.fillStyle = '#EEEEEE';
     ctx.beginPath();
-    ctx.moveTo(headX - 4, headY - headR + 2);
-    ctx.lineTo(headX - 9, headY - headR - 6);
-    ctx.lineTo(headX, headY - headR - 2);
+    ctx.moveTo(headX - 6, headY - 8);
+    ctx.bezierCurveTo(headX - 14, headY - 10, headX - 16, headY + 2, headX - 10, headY + 6);
+    ctx.bezierCurveTo(headX - 8, headY + 5, headX - 5, headY - 1, headX - 4, headY - 6);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    // Right ear
-    ctx.beginPath();
-    ctx.moveTo(headX + 2, headY - headR + 2);
-    ctx.lineTo(headX + 7, headY - headR - 6);
-    ctx.lineTo(headX + 4, headY - headR + 4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // Head circle
+    // 2. Head circle
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
     ctx.arc(headX, headY, headR, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    // Eye
-    ctx.fillStyle = '#222222';
+    // 3. Right ear (drawn on top of head, front ear)
+    ctx.fillStyle = '#EEEEEE';
+    ctx.strokeStyle = '#222222';
     ctx.beginPath();
-    ctx.arc(headX + 4, headY - 2, 2, 0, Math.PI * 2);
+    ctx.moveTo(headX + 4, headY - 8);
+    ctx.bezierCurveTo(headX + 13, headY - 10, headX + 15, headY + 2, headX + 9, headY + 6);
+    ctx.bezierCurveTo(headX + 7, headY + 5, headX + 4, headY - 1, headX + 2, headY - 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // 4. Eyes - back eye (smaller, 3/4 view)
+    ctx.fillStyle = '#111111';
+    ctx.beginPath();
+    ctx.arc(headX - 2, headY - 3, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(headX - 1.3, headY - 3.7, 0.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Nose
-    ctx.fillStyle = '#444444';
+    // Front eye (bigger, with white sclera + highlight)
+    ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(headX + 7, headY + 2, 2.5, 0, Math.PI * 2);
+    ctx.arc(headX + 3, headY - 3, 3.5, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.fillStyle = '#111111';
+    ctx.beginPath();
+    ctx.arc(headX + 3, headY - 3, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(headX + 3.8, headY - 3.8, 0.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 5. Nose (small dark ellipse)
+    ctx.fillStyle = '#222222';
+    ctx.beginPath();
+    ctx.ellipse(headX + 7, headY + 1, 2.5, 2.0, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.beginPath();
+    ctx.arc(headX + 6, headY + 0.5, 0.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 6. Tongue (small pink semicircle)
+    ctx.fillStyle = '#FF9999';
+    ctx.strokeStyle = '#DD6677';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(headX + 6, headY + 6, 2, 0, Math.PI);
+    ctx.fill();
+    ctx.stroke();
   }
 }

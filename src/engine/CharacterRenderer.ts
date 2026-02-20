@@ -491,6 +491,7 @@ export class CharacterRenderer {
     ctx.arc(x + 5 + eyeWobbleX2, y - 3, 2, 0, Math.PI * 2);
     ctx.fill();
 
+    // Beak (triangle pointing down) — always normal
     ctx.fillStyle = COLORS.gold;
     ctx.strokeStyle = COLORS.line;
     ctx.lineWidth = 1.5;
