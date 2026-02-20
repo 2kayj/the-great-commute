@@ -16,14 +16,6 @@
   display: block;
 }
 
-/* 모바일: 캔버스를 컨테이너 크기에 맞게 CSS 스케일링 */
-@media (max-width: 430px) {
-  .game-canvas {
-    width: 100dvw !important;
-    height: 100dvh !important;
-  }
-}
-
 /* HUD Top */
 .hud-top {
   position: absolute;
