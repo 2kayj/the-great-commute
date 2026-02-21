@@ -21,6 +21,7 @@ const SPEECH_MESSAGES: Record<number, string> = {
   80:  '오늘도 야근인가',
   90:  '퇴사할까...',
   100: '100m 돌파!!',
+  120: '비가 올 것 같은데...',
 };
 const SPEECH_POOL = Object.values(SPEECH_MESSAGES);
 
@@ -129,9 +130,8 @@ export const GameScreen: React.FC = () => {
     const milestone = Math.floor(distance / 10) * 10;
     if (milestone > 0 && milestone !== lastMilestoneRef.current) {
       lastMilestoneRef.current = milestone;
-      const message = milestone <= 100
-        ? SPEECH_MESSAGES[milestone]
-        : SPEECH_POOL[Math.floor(Math.random() * SPEECH_POOL.length)];
+      const message = SPEECH_MESSAGES[milestone]
+        ?? SPEECH_POOL[Math.floor(Math.random() * SPEECH_POOL.length)];
       if (message) showSpeechBubble(message);
     }
   }, [showSpeechBubble]);
