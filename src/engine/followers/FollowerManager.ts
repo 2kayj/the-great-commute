@@ -3,9 +3,10 @@ import { DogFollower } from './DogFollower';
 import { ButterflyFollower } from './ButterflyFollower';
 import { RainEffect } from './RainEffect';
 import { CatFollower } from './CatFollower';
+import { SparrowFollower } from './SparrowFollower';
 
 export class FollowerManager {
-  private followers = [new DogFollower(), new ButterflyFollower(), new RainEffect(), new CatFollower()];
+  private followers = [new DogFollower(), new ButterflyFollower(), new RainEffect(), new CatFollower(), new SparrowFollower()];
 
   update(dt: number, physicsState: PhysicsState): void {
     for (const f of this.followers) f.update(dt, physicsState);
