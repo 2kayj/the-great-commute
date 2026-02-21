@@ -164,79 +164,61 @@ export class DogFollower extends BaseFollower {
 
     ctx.strokeStyle = '#222222';
     ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
 
-    // 1. Left ear (drawn behind head)
-    ctx.fillStyle = '#EEEEEE';
+    // 1. Ears (standing upright triangles) — rendered before head so appears behind it
+    ctx.fillStyle = '#FFFFFF';
+
+    // Left ear (back): small upright triangle
     ctx.beginPath();
-    ctx.moveTo(headX - 6, headY - 8);
-    ctx.bezierCurveTo(headX - 14, headY - 10, headX - 16, headY + 2, headX - 10, headY + 6);
-    ctx.bezierCurveTo(headX - 8, headY + 5, headX - 5, headY - 1, headX - 4, headY - 6);
+    ctx.moveTo(headX - 7, headY - 2);
+    ctx.lineTo(headX - 10, headY - headR - 2);
+    ctx.lineTo(headX - 3, headY - 2);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    // 2. Head circle
+    // Right ear (front): small upright triangle, shifted left
+    ctx.beginPath();
+    ctx.moveTo(headX - 1, headY - 2);
+    ctx.lineTo(headX + 3, headY - headR - 2);
+    ctx.lineTo(headX + 6, headY - 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // 2. Head — round circle, white fill with dark outline
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
     ctx.arc(headX, headY, headR, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    // 3. Right ear (drawn on top of head, front ear)
-    ctx.fillStyle = '#EEEEEE';
-    ctx.strokeStyle = '#222222';
+    // 3. Muzzle — slight protrusion to the right via bezier path
+    ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.moveTo(headX + 4, headY - 8);
-    ctx.bezierCurveTo(headX + 13, headY - 10, headX + 15, headY + 2, headX + 9, headY + 6);
-    ctx.bezierCurveTo(headX + 7, headY + 5, headX + 4, headY - 1, headX + 2, headY - 6);
+    // Start from bottom-right of head, curve outward to form muzzle
+    ctx.moveTo(headX + 7, headY - 2);
+    ctx.bezierCurveTo(
+      headX + 14, headY - 3,   // upper muzzle bulge
+      headX + 14, headY + 4,   // lower muzzle bulge
+      headX + 7,  headY + 4    // back to head
+    );
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    // 4. Eyes - back eye (smaller, 3/4 view)
-    ctx.fillStyle = '#111111';
-    ctx.beginPath();
-    ctx.arc(headX - 2, headY - 3, 1.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(headX - 1.3, headY - 3.7, 0.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Front eye (bigger, with white sclera + highlight)
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(headX + 3, headY - 3, 3.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#111111';
-    ctx.beginPath();
-    ctx.arc(headX + 3, headY - 3, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(headX + 3.8, headY - 3.8, 0.8, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 5. Nose (small dark ellipse)
+    // 4. Eye — single small black dot (side view)
     ctx.fillStyle = '#222222';
     ctx.beginPath();
-    ctx.ellipse(headX + 7, headY + 1, 2.5, 2.0, 0, 0, Math.PI * 2);
+    ctx.arc(headX + 2, headY - 3, 1.5, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    // 5. Nose — small black dot at muzzle tip
+    ctx.fillStyle = '#222222';
     ctx.beginPath();
-    ctx.arc(headX + 6, headY + 0.5, 0.7, 0, Math.PI * 2);
+    ctx.arc(headX + 13, headY + 1, 2, 0, Math.PI * 2);
     ctx.fill();
-
-    // 6. Tongue (small pink semicircle)
-    ctx.fillStyle = '#FF9999';
-    ctx.strokeStyle = '#DD6677';
-    ctx.lineWidth = 0.8;
-    ctx.beginPath();
-    ctx.arc(headX + 6, headY + 6, 2, 0, Math.PI);
-    ctx.fill();
-    ctx.stroke();
   }
 }
