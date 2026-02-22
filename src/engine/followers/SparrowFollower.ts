@@ -133,24 +133,6 @@ export class SparrowFollower extends BaseFollower {
     ctx.stroke();
   }
 
-  // 꼬리: V자 형태
-  private renderTail(ctx: CanvasRenderingContext2D): void {
-    ctx.fillStyle = '#FFFFFF';
-    ctx.strokeStyle = '#222222';
-    ctx.lineWidth = 1;
-
-    ctx.beginPath();
-    // 꼬리 루트 (몸통 뒤쪽, 짧게)
-    ctx.moveTo(-2, 4);
-    ctx.lineTo(-3, 7); // 왼쪽 꼬리 끝
-    ctx.lineTo(0, 6);  // 가운데 오목한 지점
-    ctx.lineTo(3, 7);  // 오른쪽 꼬리 끝
-    ctx.lineTo(2, 4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  }
-
   // 머리: 원 + 눈 + 부리
   private renderHead(ctx: CanvasRenderingContext2D): void {
     const headX = 4;

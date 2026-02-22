@@ -21,9 +21,6 @@ export class CatFollower extends BaseFollower {
   // 고양이의 월드 기준 X 위치 (스크롤에 따라 감소)
   private catScreenX = ENTRANCE_START_X;
 
-  // 처음 등장 시 캐릭터가 이동한 누적 거리 기준점
-  private spawnDistance = 0;
-
   // 이미 화면 밖으로 나갔는지 여부
   private done = false;
 
@@ -40,7 +37,6 @@ export class CatFollower extends BaseFollower {
     this.catScreenX = ENTRANCE_START_X;
     this.done = false;
     this.tailPhase = 0;
-    this.spawnDistance = 0;
   }
 
   protected onUpdate(dt: number, physicsState: PhysicsState): void {

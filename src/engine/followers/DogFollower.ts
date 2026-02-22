@@ -12,7 +12,7 @@ function easeOutBack(t: number): number {
 }
 
 export class DogFollower extends BaseFollower {
-  protected appearDistance = 50;
+  protected appearDistance = 300;
 
   private walkPhase = 0;
   private tail: VerletChain;
