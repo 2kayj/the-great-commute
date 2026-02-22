@@ -21,7 +21,10 @@ const App: React.FC = () => {
       if (!el) return;
 
       const vw = window.innerWidth;
-      const vh = window.innerHeight;
+      // visualViewport.height reflects the actual visible area on iOS Safari,
+      // excluding browser chrome (address bar / toolbar). Falls back to
+      // window.innerHeight on browsers that don't support visualViewport.
+      const vh = window.visualViewport?.height ?? window.innerHeight;
 
       const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
 
@@ -29,7 +32,10 @@ const App: React.FC = () => {
       const scaledH = DESIGN_H * scale;
 
       const offsetX = (vw - scaledW) / 2;
-      const offsetY = (vh - scaledH) / 2;
+      // Use visualViewport.offsetTop to account for any vertical offset
+      // introduced by the iOS Safari address bar when it is partially shown.
+      const vpOffsetTop = window.visualViewport?.offsetTop ?? 0;
+      const offsetY = vpOffsetTop + (vh - scaledH) / 2;
 
       el.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
     };
@@ -37,8 +43,15 @@ const App: React.FC = () => {
     applyScale();
 
     window.addEventListener('resize', applyScale);
+    // visualViewport resize fires more reliably than window resize on iOS Safari
+    // when the address bar shows/hides.
+    window.visualViewport?.addEventListener('resize', applyScale);
+    window.visualViewport?.addEventListener('scroll', applyScale);
+
     return () => {
       window.removeEventListener('resize', applyScale);
+      window.visualViewport?.removeEventListener('resize', applyScale);
+      window.visualViewport?.removeEventListener('scroll', applyScale);
     };
   }, []);
 

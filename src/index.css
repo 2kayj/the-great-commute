@@ -24,6 +24,9 @@ body {
   -webkit-overflow-scrolling: auto;
   position: fixed;
   width: 100%;
+  /* height: 100% ensures the body fills the layout viewport on iOS Safari
+     so child elements using height: 100% also resolve correctly. */
+  height: 100%;
 }
 
 button {
@@ -40,6 +43,7 @@ button:focus-visible {
   display: flex;
   min-height: 100vh;
   min-height: 100dvh;
+  height: 100%;
   align-items: center;
   justify-content: center;
 }
@@ -47,16 +51,20 @@ button:focus-visible {
 @media (max-width: 430px) {
   html {
     background: #ffffff;
+    /* Ensure html fills the full layout viewport so percentage heights
+       on descendants resolve to the layout viewport size, not just
+       the visual viewport. */
+    height: 100%;
   }
 
   body {
     background: #ffffff;
-    height: 100dvh;
+    height: 100%;
   }
 
   #root {
-    height: 100dvh;
-    min-height: 100dvh;
+    height: 100%;
+    min-height: unset;
     align-items: stretch;
   }
 }

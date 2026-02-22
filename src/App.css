@@ -44,22 +44,25 @@
   .app-wrapper {
     padding: 0;
     background: #ffffff;
-    min-height: 100dvh;
-    align-items: center;
-    justify-content: center;
+    /* Use 100% of the layout viewport height so the wrapper covers the full
+       page even when the iOS Safari address bar is visible. The JS scale
+       logic uses visualViewport.height for the actual visible area. */
+    min-height: 100%;
+    height: 100%;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
-  /* 모바일: phone-frame은 뷰포트 크기로, 내부를 scale로 맞춤 */
+  /* 모바일: phone-frame은 전체 레이아웃 뷰포트를 커버
+     실제 콘텐츠(inner-container)는 JS transform으로 시각 뷰포트에 맞춤 */
   .phone-frame {
-    width: 100dvw;
-    height: 100dvh;
+    width: 100%;
+    height: 100%;
     border-radius: 0;
     border: none;
     box-shadow: none;
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative;
     background: #ffffff;
   }
 
@@ -69,6 +72,6 @@
     height: 844px;
     flex-shrink: 0;
     transform-origin: top left;
-    /* scale은 JS에서 inline style로 설정 */
+    /* scale + translate는 JS에서 inline style로 설정 */
   }
 }
