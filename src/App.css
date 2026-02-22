@@ -5,73 +5,30 @@
 }
 
 .app-wrapper {
-  min-height: 100vh;
-  min-height: 100dvh;
-  background: #cccccc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-}
-
-.phone-frame {
-  width: 390px;
-  height: 844px;
-  background: #ffffff;
-  border-radius: 40px;
-  overflow: hidden;
-  position: relative;
-  border: 3px solid #222222;
-  box-shadow: 6px 6px 0 #000000;
-}
-
-/* 데스크탑: inner-container는 phone-frame을 100% 채움 */
-.inner-container {
   width: 100%;
   height: 100%;
   position: relative;
+  background: #000;  /* letterbox 색상 */
+  overflow: hidden;
 }
 
-/* 데스크탑에서 phone-frame(844px)이 뷰포트보다 클 때 상단 정렬 */
-@media (max-height: 900px) and (min-width: 431px) {
-  .app-wrapper {
-    align-items: flex-start;
-    padding: 10px 0;
-  }
+.game-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 390px;
+  height: 844px;
+  transform-origin: center center;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  overflow: hidden;
 }
 
-@media (max-width: 430px) {
-  .app-wrapper {
-    padding: 0;
-    background: #ffffff;
-    /* Use 100% of the layout viewport height so the wrapper covers the full
-       page even when the iOS Safari address bar is visible. The JS scale
-       logic uses visualViewport.height for the actual visible area. */
-    min-height: 100%;
-    height: 100%;
-    align-items: flex-start;
-    justify-content: flex-start;
-  }
-
-  /* 모바일: phone-frame은 전체 레이아웃 뷰포트를 커버
-     실제 콘텐츠(inner-container)는 JS transform으로 시각 뷰포트에 맞춤 */
-  .phone-frame {
-    width: 100%;
-    height: 100%;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-    overflow: hidden;
-    position: relative;
-    background: #ffffff;
-  }
-
-  /* inner-container: 항상 390x844 고정, transform으로 뷰포트에 맞춤 */
-  .phone-frame > .inner-container {
-    width: 390px;
-    height: 844px;
-    flex-shrink: 0;
-    transform-origin: top left;
-    /* scale + translate는 JS에서 inline style로 설정 */
+/* 데스크톱: phone-frame 시각 효과 */
+@media (min-width: 431px) {
+  .game-container {
+    border-radius: 40px;
+    border: 3px solid #222;
+    box-shadow: 6px 6px 0 #000;
   }
 }

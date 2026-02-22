@@ -11,59 +11,63 @@ const DESIGN_H = 844;
 
 const App: React.FC = () => {
   const { phase } = useGameStore();
-  const innerRef = useRef<HTMLDivElement>(null);
+  const gameContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const applyScale = () => {
-      if (window.innerWidth > 430) return;
-
-      const el = innerRef.current;
+    const applyLayout = () => {
+      const el = gameContainerRef.current;
       if (!el) return;
 
-      const vw = window.innerWidth;
-      // visualViewport.height reflects the actual visible area on iOS Safari,
-      // excluding browser chrome (address bar / toolbar). Falls back to
-      // window.innerHeight on browsers that don't support visualViewport.
+      // visualViewport 우선, 없으면 innerWidth/Height
+      const vw = window.visualViewport?.width ?? window.innerWidth;
       const vh = window.visualViewport?.height ?? window.innerHeight;
 
-      const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
+      // 최소 크기 이하이면 고정 (스케일 없이 그대로)
+      if (vw <= DESIGN_W && vh <= DESIGN_H) {
+        el.style.width = `${DESIGN_W}px`;
+        el.style.height = `${DESIGN_H}px`;
+        el.style.transform = 'translate(-50%, -50%)';
+        return;
+      }
 
-      const scaledW = DESIGN_W * scale;
-      const scaledH = DESIGN_H * scale;
+      // 높이 기준으로 scale 계산 (높이 우선 꽉 채우기)
+      const scaleByH = vh / DESIGN_H;
+      const scaledW = DESIGN_W * scaleByH;
 
-      const offsetX = (vw - scaledW) / 2;
-      // Use visualViewport.offsetTop to account for any vertical offset
-      // introduced by the iOS Safari address bar when it is partially shown.
-      const vpOffsetTop = window.visualViewport?.offsetTop ?? 0;
-      const offsetY = vpOffsetTop + (vh - scaledH) / 2;
+      let scale: number;
+      if (scaledW <= vw) {
+        // 높이 기준으로 꽉 채워도 너비가 화면 안에 들어옴 → letterbox
+        scale = scaleByH;
+      } else {
+        // 너비 기준으로 축소해야 함
+        scale = vw / DESIGN_W;
+      }
 
-      el.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+      el.style.width = `${DESIGN_W}px`;
+      el.style.height = `${DESIGN_H}px`;
+      el.style.transform = `translate(-50%, -50%) scale(${scale})`;
     };
 
-    applyScale();
+    applyLayout();
 
-    window.addEventListener('resize', applyScale);
+    window.addEventListener('resize', applyLayout);
     // visualViewport resize fires more reliably than window resize on iOS Safari
     // when the address bar shows/hides.
-    window.visualViewport?.addEventListener('resize', applyScale);
-    window.visualViewport?.addEventListener('scroll', applyScale);
+    window.visualViewport?.addEventListener('resize', applyLayout);
 
     return () => {
-      window.removeEventListener('resize', applyScale);
-      window.visualViewport?.removeEventListener('resize', applyScale);
-      window.visualViewport?.removeEventListener('scroll', applyScale);
+      window.removeEventListener('resize', applyLayout);
+      window.visualViewport?.removeEventListener('resize', applyLayout);
     };
   }, []);
 
   return (
     <div className="app-wrapper">
-      <div className="phone-frame">
-        <div className="inner-container" ref={innerRef}>
-          {phase === 'ready'     && <StartScreen />}
-          {phase === 'countdown' && <CountdownScreen />}
-          {(phase === 'playing' || phase === 'stage-transition') && <GameScreen />}
-          {phase === 'over'      && <GameOverScreen />}
-        </div>
+      <div className="game-container" ref={gameContainerRef}>
+        {phase === 'ready'     && <StartScreen />}
+        {phase === 'countdown' && <CountdownScreen />}
+        {(phase === 'playing' || phase === 'stage-transition') && <GameScreen />}
+        {phase === 'over'      && <GameOverScreen />}
       </div>
     </div>
   );
