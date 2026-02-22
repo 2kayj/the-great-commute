@@ -1,4 +1,4 @@
-const CACHE_NAME = 'the-great-commute-v2';
+const CACHE_NAME = 'the-great-commute-v3';
 
 const APP_SHELL = [
   '/the-great-commute/',
