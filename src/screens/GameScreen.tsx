@@ -27,6 +27,17 @@ const SPEECH_MESSAGES: Record<number, string> = {
 };
 const SPEECH_POOL = Object.values(SPEECH_MESSAGES);
 
+function easeInOut(t: number): number {
+  return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+}
+
+interface EnteringState {
+  active: boolean;
+  elapsed: number;
+  charX: number;
+  charOpacity: number;
+}
+
 export const GameScreen: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,6 +56,12 @@ export const GameScreen: React.FC = () => {
   const gameOverFiredRef  = useRef<boolean>(false);
   const gameOverTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stageClearedRef   = useRef<boolean>(false);
+  const enteringRef       = useRef<EnteringState>({
+    active: false,
+    elapsed: 0,
+    charX: CHARACTER_X,
+    charOpacity: 1,
+  });
 
   const { phase, setPhase, setDistance, setIsNewRecord } = useGameStore();
   const { bestDistance, submitRecord } = useRecordStore();
@@ -162,6 +179,9 @@ export const GameScreen: React.FC = () => {
     followerManager.reset();
     gameOverFiredRef.current = false;
 
+    // Reset entering state
+    enteringRef.current = { active: false, elapsed: 0, charX: CHARACTER_X, charOpacity: 1 };
+
     // Setup for current stage
     const stageState = useStageStore.getState();
     if (stageState.usedContinue && stageState.stageBaseDistance > 0) {
@@ -188,6 +208,70 @@ export const GameScreen: React.FC = () => {
         return;
       }
 
+      // ----- Entering-building animation -----
+      const entering = enteringRef.current;
+      if (entering.active) {
+        entering.elapsed += deltaTime;
+
+        const DURATION = 2.0;
+        const progress = Math.min(entering.elapsed / DURATION, 1);
+
+        // Background scrolls to a stop (lerps from full speed to 0 over duration)
+        const state = physics.getState();
+        const scrollSpeed = state.speed * (1 - progress);
+        background.update(deltaTime, scrollSpeed, state.distance);
+
+        // Goal building slides in during the first half (0→1 of the first second)
+        background.setEnteringProgress(Math.min(progress * 2, 1));
+
+        // Character walks toward the door from 40% progress onward
+        const doorX = background.getGoalBuildingDoorX();
+        if (progress > 0.4) {
+          const moveProgress = (progress - 0.4) / 0.6;
+          entering.charX = CHARACTER_X + (doorX - CHARACTER_X) * easeInOut(moveProgress);
+        }
+
+        // Fade out character after 80% progress
+        if (progress > 0.8) {
+          entering.charOpacity = 1 - (progress - 0.8) / 0.2;
+        } else {
+          entering.charOpacity = 1;
+        }
+
+        // Physics keeps running in zero-gravity mode (walkPhase advances)
+        physics.update(deltaTime, 0);
+
+        // Character stays at CHARACTER_X for physics (Verlet chains stay stable)
+        // Visual offset is applied in render via canvas translate
+        character.update(
+          CHARACTER_X,
+          GROUND_Y,
+          state.walkPhase,
+          state.angle,
+          deltaTime,
+          false,
+          scrollSpeed > 10 ? state.speed : 40
+        );
+
+        // Follower stays put (no update call)
+
+        // HUD still shows distance
+        updateHUD(state.distance, false);
+
+        // Sequence complete: trigger stage-transition overlay
+        if (progress >= 1) {
+          entering.active = false;
+          physics.setZeroGravity(false);
+          background.hideGoalBuilding();
+          advanceStageRef.current();
+          const newStageState = useStageStore.getState();
+          physics.setStageMultiplier(newStageState.difficultyMultiplier);
+          followerManager.setupForStage(newStageState.stageBaseDistance, newStageState.currentDay);
+          setPhaseRef.current('stage-transition');
+        }
+        return;
+      }
+
       const dir = directionRef.current;
       physics.update(deltaTime, dir);
 
@@ -211,12 +295,15 @@ export const GameScreen: React.FC = () => {
       const nextStageDist = stageBaseDistRef.current + 400;
       if (state.distance >= nextStageDist && !stageClearedRef.current && !state.isGameOver) {
         stageClearedRef.current = true;
-        advanceStageRef.current();
-        // Read updated stage state after advance
-        const newStageState = useStageStore.getState();
-        physics.setStageMultiplier(newStageState.difficultyMultiplier);
-        followerManager.setupForStage(newStageState.stageBaseDistance, newStageState.currentDay);
-        setPhaseRef.current('stage-transition');
+        // Start entering-building animation instead of jumping straight to transition
+        enteringRef.current = {
+          active: true,
+          elapsed: 0,
+          charX: CHARACTER_X,
+          charOpacity: 1,
+        };
+        physics.setZeroGravity(true);
+        background.showGoalBuilding();
         return;
       }
 
@@ -245,14 +332,34 @@ export const GameScreen: React.FC = () => {
       followerManager.render(ctx, GROUND_Y);
 
       const state = physics.getState();
-      character.render(
-        ctx,
-        CHARACTER_X,
-        GROUND_Y,
-        state.angle,
-        state.walkPhase,
-        state.isGameOver
-      );
+      const entering = enteringRef.current;
+
+      if (entering.active) {
+        // Render at CHARACTER_X but visually offset via canvas translate
+        // This keeps Verlet chains stable while character appears to move
+        const offsetX = entering.charX - CHARACTER_X;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, entering.charOpacity);
+        ctx.translate(offsetX, 0);
+        character.render(
+          ctx,
+          CHARACTER_X,
+          GROUND_Y,
+          state.angle,
+          state.walkPhase,
+          false
+        );
+        ctx.restore();
+      } else {
+        character.render(
+          ctx,
+          CHARACTER_X,
+          GROUND_Y,
+          state.angle,
+          state.walkPhase,
+          state.isGameOver
+        );
+      }
     };
 
     const loop = new GameLoop(update, render);

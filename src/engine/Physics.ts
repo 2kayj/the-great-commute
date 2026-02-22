@@ -26,6 +26,7 @@ export class Physics {
   private accumulator: number = 0;
   private difficultyManager: DifficultyManager = new DifficultyManager();
   private stageMultiplier: number = 1.0;
+  private zeroGravity: boolean = false;
 
   constructor() {
     this.state = {
@@ -57,6 +58,10 @@ export class Physics {
     this.stageMultiplier = multiplier;
   }
 
+  setZeroGravity(enabled: boolean): void {
+    this.zeroGravity = enabled;
+  }
+
   resetForContinue(stageBaseDistance: number, stageMultiplier: number): void {
     this.state = {
       angle: 0,
@@ -84,6 +89,24 @@ export class Physics {
   }
 
   private step(dt: number, inputDirection: -1 | 0 | 1): void {
+    // Zero-gravity mode: angle lerps to 0, no game-over check, no input
+    if (this.zeroGravity) {
+      this.state.angle *= 0.92;
+      this.state.angularVelocity *= 0.85;
+
+      // Speed, distance, walkPhase keep updating so character walks naturally
+      this.state.speed = clamp(
+        INITIAL_SPEED + this.state.elapsedTime * SPEED_INCREMENT,
+        INITIAL_SPEED,
+        MAX_SPEED
+      );
+      this.state.distance += (this.state.speed / 100) * dt;
+      this.state.elapsedTime += dt;
+      const cycleFreq = this.state.speed / 80;
+      this.state.walkPhase += cycleFreq * dt * Math.PI * 2;
+      return;
+    }
+
     const { angle } = this.state;
 
     // Difficulty scaling based on current distance and time

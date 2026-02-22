@@ -6,6 +6,16 @@ const NEAR_BUILDING_SPEED = 1.0;
 const FAR_BUILDING_SPEED = 0.35;
 const CLOUD_BASE_SPEED = 0.08;
 
+// Goal building constants
+const GOAL_BUILDING_WIDTH  = 400;
+const GOAL_BUILDING_HEIGHT = 1120;
+const GOAL_BUILDING_REST_X = CANVAS_WIDTH - 480; // resting screen X when arrived
+
+interface GoalBuildingData {
+  wobble: number[];
+  windows: { x: number; y: number; w: number; h: number }[];
+}
+
 export class BackgroundRenderer {
   private nearBuildings: BuildingData[] = [];
   private farBuildings: BuildingData[] = [];
@@ -14,6 +24,10 @@ export class BackgroundRenderer {
   private nearScrollX: number = 0;
   private farScrollX: number = 0;
   private time: number = 0;
+
+  // Goal building state
+  private goalBuilding: GoalBuildingData | null = null;
+  private enteringProgress: number = 0; // 0 = offscreen right, 1 = resting position
 
   constructor() {
     this.initBuildings();
@@ -103,6 +117,52 @@ export class BackgroundRenderer {
     }
   }
 
+  // --- Goal building API ---
+
+  showGoalBuilding(): void {
+    const rng = seededRandom(7);
+    const wobble: number[] = Array.from({ length: 8 }, () => (rng() - 0.5) * 3);
+
+    const windows: GoalBuildingData['windows'] = [];
+    const cols = Math.floor(GOAL_BUILDING_WIDTH / 56);
+    const rows = Math.floor((GOAL_BUILDING_HEIGHT - 280) / 72); // leave room for door area
+    const topY = GROUND_Y - GOAL_BUILDING_HEIGHT;
+    for (let row = 0; row < Math.min(rows, 10); row++) {
+      for (let col = 0; col < Math.min(cols, 6); col++) {
+        windows.push({
+          x: 24 + col * 56 + (rng() - 0.5) * 4,
+          y: topY + 40 + row * 72 + (rng() - 0.5) * 4,
+          w: 36 + (rng() - 0.5) * 4,
+          h: 44 + (rng() - 0.5) * 4,
+        });
+      }
+    }
+
+    this.goalBuilding = { wobble, windows };
+    this.enteringProgress = 0;
+  }
+
+  hideGoalBuilding(): void {
+    this.goalBuilding = null;
+    this.enteringProgress = 0;
+  }
+
+  setEnteringProgress(progress: number): void {
+    this.enteringProgress = Math.max(0, Math.min(1, progress));
+  }
+
+  getGoalBuildingDoorX(): number {
+    const screenX = this.getGoalBuildingScreenX();
+    // Door is centered horizontally in the building
+    return screenX + GOAL_BUILDING_WIDTH / 2;
+  }
+
+  private getGoalBuildingScreenX(): number {
+    // Slide from right off-screen to resting position
+    const offscreenX = CANVAS_WIDTH + 50;
+    return offscreenX + (GOAL_BUILDING_REST_X - offscreenX) * this.enteringProgress;
+  }
+
   render(ctx: CanvasRenderingContext2D): void {
     // Sky
     ctx.fillStyle = COLORS.bg;
@@ -112,6 +172,11 @@ export class BackgroundRenderer {
     this.renderBuildingLayer(ctx, this.farBuildings, this.farScrollX, 0.35, true);
     this.renderBuildingLayer(ctx, this.nearBuildings, this.nearScrollX, 1.0, false);
     this.renderGround(ctx);
+
+    // Goal building rendered on top of everything (after ground)
+    if (this.goalBuilding) {
+      this.renderGoalBuilding(ctx);
+    }
   }
 
   private renderClouds(ctx: CanvasRenderingContext2D): void {
@@ -319,9 +384,168 @@ export class BackgroundRenderer {
     }
   }
 
+  private renderGoalBuilding(ctx: CanvasRenderingContext2D): void {
+    if (!this.goalBuilding) return;
+
+    const screenX = this.getGoalBuildingScreenX();
+    const w = GOAL_BUILDING_WIDTH;
+    const h = GOAL_BUILDING_HEIGHT;
+    const topY = GROUND_Y - h;
+    const bottomY = GROUND_Y;
+    const t = this.time;
+    const { wobble, windows } = this.goalBuilding;
+
+    ctx.save();
+
+    // --- Building body (same wobble-bezier style as near buildings) ---
+    const w0 = wobble[0] ?? 0;
+    const w1 = wobble[1] ?? 0;
+    const w2 = wobble[2] ?? 0;
+    const w3 = wobble[3] ?? 0;
+    const w4 = wobble[4] ?? 0;
+    const w5 = wobble[5] ?? 0;
+    const w6 = wobble[6] ?? 0;
+    const w7 = wobble[7] ?? 0;
+
+    ctx.strokeStyle = COLORS.line;
+    ctx.fillStyle = COLORS.bg;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(screenX + w0, bottomY);
+    ctx.bezierCurveTo(
+      screenX + w1, bottomY - h * 0.33,
+      screenX + w2, bottomY - h * 0.66,
+      screenX + w3, topY
+    );
+    ctx.bezierCurveTo(
+      screenX + w * 0.33 + w4, topY + w5,
+      screenX + w * 0.66 + w6, topY + w7,
+      screenX + w + w0, topY
+    );
+    ctx.bezierCurveTo(
+      screenX + w + w2, bottomY - h * 0.66,
+      screenX + w + w1, bottomY - h * 0.33,
+      screenX + w + w3, bottomY
+    );
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // --- Antenna ---
+    const antX = screenX + w / 2;
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(antX, topY);
+    ctx.quadraticCurveTo(
+      antX + Math.sin(t * 0.3) * 2,
+      topY - 15,
+      antX + Math.sin(t * 0.5) * 3,
+      topY - 25
+    );
+    ctx.stroke();
+    ctx.fillStyle = COLORS.bg;
+    ctx.beginPath();
+    ctx.arc(antX + Math.sin(t * 0.5) * 3, topY - 28, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // --- Windows ---
+    ctx.fillStyle = '#F8F8F8';
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 1.5;
+
+    for (const win of windows) {
+      // win.x/y are relative to building top-left (screenX, topY)
+      const wx = screenX + win.x;
+      const wy = win.y; // already absolute Y (set relative to topY during showGoalBuilding)
+
+      const jx = wobbleOffset(win.x, t * 0.1, 1.5);
+      const jy = wobbleOffset(win.y, t * 0.1, 1.5);
+
+      ctx.beginPath();
+      ctx.moveTo(wx + jx,          wy + jy);
+      ctx.lineTo(wx + win.w + jx,  wy + jy - 0.5);
+      ctx.lineTo(wx + win.w,       wy + win.h + jy);
+      ctx.lineTo(wx,               wy + win.h + jy + 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // --- Door (centered, at bottom of building) ---
+    const doorW = 128;
+    const doorH = 192;
+    const doorX = screenX + (w - doorW) / 2;
+    const doorY = bottomY - doorH;
+
+    // Door frame
+    ctx.fillStyle = '#8B6914';
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.rect(doorX, doorY, doorW, doorH);
+    ctx.fill();
+    ctx.stroke();
+
+    // Left glass panel
+    ctx.fillStyle = '#B8D4E8';
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.rect(doorX + 8, doorY + 12, 48, doorH - 24);
+    ctx.fill();
+    ctx.stroke();
+
+    // Right glass panel
+    ctx.beginPath();
+    ctx.rect(doorX + doorW - 56, doorY + 12, 48, doorH - 24);
+    ctx.fill();
+    ctx.stroke();
+
+    // Door handles
+    ctx.fillStyle = '#FFD700';
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 2;
+    const handleY = doorY + doorH * 0.55;
+    ctx.beginPath();
+    ctx.arc(doorX + 64, handleY, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(doorX + doorW - 64, handleY, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // --- Building sign (OFFICE label) ---
+    const signW = w - 64;
+    const signH = 64;
+    const signX = screenX + 32;
+    const signY = topY + 56;
+    ctx.fillStyle = '#4A90D9';
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.rect(signX, signY, signW, signH);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 24px "Comic Sans MS", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('OFFICE', screenX + w / 2, signY + signH / 2);
+
+    ctx.restore();
+  }
+
   reset(): void {
     this.nearScrollX = 0;
     this.farScrollX = 0;
     this.time = 0;
+    this.goalBuilding = null;
+    this.enteringProgress = 0;
   }
 }

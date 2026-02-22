@@ -8,17 +8,21 @@
   pointer-events: all;
 }
 
-/* Phase: fadeout - screen goes black */
+/* ============================================
+   Phase: fadeout - 검은 화면으로 빠르게 전환
+   ============================================ */
 .stage-transition--fadeout {
   background: rgba(0, 0, 0, 0);
-  animation: stFadeToBlack 0.8s ease-out forwards;
+  animation: stFadeToBlack 0.3s ease-out forwards;
 }
 
 .stage-transition--fadeout .stage-transition__content {
   opacity: 0;
 }
 
-/* Phase: text - black screen with text */
+/* ============================================
+   Phase: text - 검은 화면 + 텍스트
+   ============================================ */
 .stage-transition--text {
   background: #000;
 }
@@ -27,16 +31,21 @@
   animation: stTextAppear 0.4s ease-out forwards;
 }
 
-/* Phase: fadein - black fades away */
+/* ============================================
+   Phase: fadein - 검은 화면에서 게임으로
+   ============================================ */
 .stage-transition--fadein {
   background: #000;
-  animation: stFadeFromBlack 0.8s ease-in forwards;
+  animation: stFadeFromBlack 0.5s ease-in forwards;
 }
 
 .stage-transition--fadein .stage-transition__content {
   animation: stTextDisappear 0.3s ease-in forwards;
 }
 
+/* ============================================
+   텍스트 스타일
+   ============================================ */
 .stage-transition__content {
   text-align: center;
 }
@@ -56,22 +65,26 @@
   letter-spacing: 1px;
 }
 
+/* ============================================
+   키프레임
+   ============================================ */
+
 @keyframes stFadeToBlack {
-  0% { background: rgba(0, 0, 0, 0); }
+  0%   { background: rgba(0, 0, 0, 0); }
   100% { background: rgba(0, 0, 0, 1); }
 }
 
 @keyframes stFadeFromBlack {
-  0% { background: rgba(0, 0, 0, 1); }
+  0%   { background: rgba(0, 0, 0, 1); }
   100% { background: rgba(0, 0, 0, 0); }
 }
 
 @keyframes stTextAppear {
-  0% { opacity: 0; transform: scale(0.8) translateY(10px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
+  0%   { opacity: 0; transform: scale(0.8) translateY(10px); }
+  100% { opacity: 1; transform: scale(1)   translateY(0); }
 }
 
 @keyframes stTextDisappear {
-  0% { opacity: 1; }
+  0%   { opacity: 1; }
   100% { opacity: 0; }
 }

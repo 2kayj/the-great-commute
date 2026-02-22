@@ -24,12 +24,12 @@ export const StageTransitionOverlay: React.FC<Props> = ({ dayNumber, onComplete 
   const [phase, setPhase] = useState<'fadeout' | 'text' | 'fadein'>('fadeout');
 
   useEffect(() => {
-    // Phase 1: fade out (0.8s)
-    const t1 = setTimeout(() => setPhase('text'), 800);
-    // Phase 2: show text (1.5s)
-    const t2 = setTimeout(() => setPhase('fadein'), 2300);
-    // Phase 3: fade in (0.8s), then complete
-    const t3 = setTimeout(() => onComplete(), 3100);
+    // Phase 1: fadeout (0.3s)
+    const t1 = setTimeout(() => setPhase('text'), 300);
+    // Phase 2: text (1500ms)
+    const t2 = setTimeout(() => setPhase('fadein'), 1800);
+    // Phase 3: fadein (0.5s) then complete
+    const t3 = setTimeout(() => onComplete(), 2300);
 
     return () => {
       clearTimeout(t1);

@@ -46,12 +46,7 @@ export const GameOverScreen: React.FC = () => {
 
   const handleRetry = () => {
     resetStage();
-    incrementPlayCount();
-    if (shouldShowInterstitial()) {
-      setShowingInterstitialAd(true);
-    } else {
-      setPhase('countdown');
-    }
+    setPhase('countdown');
   };
 
   const handleInterstitialComplete = () => {
