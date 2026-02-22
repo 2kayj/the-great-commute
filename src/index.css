@@ -8,7 +8,7 @@ html, body {
   margin: 0;
   overflow: hidden;
   overscroll-behavior: none;
-  position: fixed;  /* iOS 바운스 스크롤 방지 */
+  touch-action: none;  /* iOS 바운스 스크롤 방지 (position: fixed 대체) */
 }
 
 :root {

@@ -24,7 +24,8 @@
   right: 0;
   z-index: 20;
   padding: 12px 20px 10px;
-  padding-top: max(12px, env(safe-area-inset-top));
+  /* safe-area-inset-top 제거: game-container는 390x844 논리 좌표계이므로
+     scale 변환 내부에서 물리적 safe-area를 적용하면 이중 보정이 됨 */
   display: flex;
   align-items: center;
   justify-content: space-between;
