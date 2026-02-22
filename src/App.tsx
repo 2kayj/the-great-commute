@@ -11,39 +11,27 @@ const DESIGN_H = 844;
 
 const App: React.FC = () => {
   const { phase } = useGameStore();
-  const appWrapperRef = useRef<HTMLDivElement>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const applyLayout = () => {
-      const wrapper = appWrapperRef.current;
       const el = gameContainerRef.current;
-      if (!wrapper || !el) return;
+      if (!el) return;
 
-      // visualViewport 우선 사용: iOS Safari에서 주소창을 제외한 실제 가시 영역
-      // 없으면 innerWidth/Height 폴백
-      const vw = window.visualViewport?.width ?? window.innerWidth;
-      const vh = window.visualViewport?.height ?? window.innerHeight;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
 
-      // wrapper를 실제 가시 영역 크기로 고정
-      // position: fixed 대신 인라인 스타일로 정확한 픽셀값 지정
-      wrapper.style.width = `${vw}px`;
-      wrapper.style.height = `${vh}px`;
-
-      // contain 방식: 가로/세로 모두 넘치지 않는 최대 스케일
-      // 모바일(세로형): vh/DESIGN_H 기준이 대부분 맞음
-      // 모바일(가로형) 또는 데스크톱: vw/DESIGN_W가 작을 수 있음
       const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
+      const scaledW = DESIGN_W * scale;
+      const scaledH = DESIGN_H * scale;
 
-      el.style.width = `${DESIGN_W}px`;
-      el.style.height = `${DESIGN_H}px`;
-      el.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      el.style.left = `${(vw - scaledW) / 2}px`;
+      el.style.top = `${(vh - scaledH) / 2}px`;
+      el.style.transform = `scale(${scale})`;
     };
 
     applyLayout();
-
     window.addEventListener('resize', applyLayout);
-    // visualViewport resize: iOS Safari에서 주소창 표시/숨김 시 안정적으로 발화
     window.visualViewport?.addEventListener('resize', applyLayout);
 
     return () => {
@@ -53,7 +41,7 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="app-wrapper" ref={appWrapperRef}>
+    <div className="app-wrapper">
       <div className="game-container" ref={gameContainerRef}>
         {phase === 'ready'     && <StartScreen />}
         {phase === 'countdown' && <CountdownScreen />}

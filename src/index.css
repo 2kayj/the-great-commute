@@ -1,14 +1,14 @@
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 html, body {
   width: 100%;
   height: 100%;
-  margin: 0;
   overflow: hidden;
   overscroll-behavior: none;
-  touch-action: none;  /* iOS 바운스 스크롤 방지 */
 }
 
 :root {
@@ -30,8 +30,6 @@ button:focus-visible {
 }
 
 #root {
-  /* app-wrapper가 position: fixed로 독립적으로 처리되므로
-     #root는 크기 기준 역할 불필요 */
   width: 100%;
   height: 100%;
 }

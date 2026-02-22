@@ -1,27 +1,15 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 .app-wrapper {
-  /* JS에서 vw/vh 픽셀값으로 직접 제어하므로 CSS width/height는 명시하지 않음 */
-  /* position: fixed로 iOS 스크롤/주소창 영향 완전 차단 */
   position: fixed;
-  top: 0;
-  left: 0;
-  background: #000;  /* letterbox 색상 */
+  inset: 0;
+  background: #000;
   overflow: hidden;
 }
 
 .game-container {
   position: absolute;
-  top: 50%;
-  left: 50%;
   width: 390px;
   height: 844px;
-  transform-origin: center center;
-  transform: translate(-50%, -50%);
+  transform-origin: 0 0;
   background: #fff;
   overflow: hidden;
 }
