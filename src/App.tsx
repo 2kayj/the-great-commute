@@ -28,26 +28,8 @@ const App: React.FC = () => {
       // app-wrapper 높이를 vh로 직접 설정 → top: 50%의 기준을 vh와 일치시킴
       wrapper.style.height = `${vh}px`;
 
-      // 최소 크기 이하이면 고정 (스케일 없이 그대로)
-      if (vw <= DESIGN_W && vh <= DESIGN_H) {
-        el.style.width = `${DESIGN_W}px`;
-        el.style.height = `${DESIGN_H}px`;
-        el.style.transform = 'translate(-50%, -50%)';
-        return;
-      }
-
-      // 높이 기준으로 scale 계산 (높이 우선 꽉 채우기)
-      const scaleByH = vh / DESIGN_H;
-      const scaledW = DESIGN_W * scaleByH;
-
-      let scale: number;
-      if (scaledW <= vw) {
-        // 높이 기준으로 꽉 채워도 너비가 화면 안에 들어옴 → letterbox
-        scale = scaleByH;
-      } else {
-        // 너비 기준으로 축소해야 함
-        scale = vw / DESIGN_W;
-      }
+      // 항상 scale 계산: 높이와 너비 중 작은 비율 사용
+      const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
 
       el.style.width = `${DESIGN_W}px`;
       el.style.height = `${DESIGN_H}px`;
