@@ -28,8 +28,8 @@ const App: React.FC = () => {
       // app-wrapper 높이를 vh로 직접 설정 → top: 50%의 기준을 vh와 일치시킴
       wrapper.style.height = `${vh}px`;
 
-      // 항상 scale 계산: 높이와 너비 중 작은 비율 사용
-      const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
+      // 높이 꽉 채우고, 너비는 비율로
+      const scale = vh / DESIGN_H;
 
       el.style.width = `${DESIGN_W}px`;
       el.style.height = `${DESIGN_H}px`;
