@@ -20,16 +20,20 @@ const App: React.FC = () => {
       const el = gameContainerRef.current;
       if (!wrapper || !el) return;
 
-      // visualViewport 우선, 없으면 innerWidth/Height
-      // visualViewport는 iOS Safari에서 주소창을 제외한 실제 가시 영역을 반환함
+      // visualViewport 우선 사용: iOS Safari에서 주소창을 제외한 실제 가시 영역
+      // 없으면 innerWidth/Height 폴백
       const vw = window.visualViewport?.width ?? window.innerWidth;
       const vh = window.visualViewport?.height ?? window.innerHeight;
 
-      // app-wrapper 높이를 vh로 직접 설정 → top: 50%의 기준을 vh와 일치시킴
+      // wrapper를 실제 가시 영역 크기로 고정
+      // position: fixed 대신 인라인 스타일로 정확한 픽셀값 지정
+      wrapper.style.width = `${vw}px`;
       wrapper.style.height = `${vh}px`;
 
-      // 높이 꽉 채우고, 너비는 비율로
-      const scale = vh / DESIGN_H;
+      // contain 방식: 가로/세로 모두 넘치지 않는 최대 스케일
+      // 모바일(세로형): vh/DESIGN_H 기준이 대부분 맞음
+      // 모바일(가로형) 또는 데스크톱: vw/DESIGN_W가 작을 수 있음
+      const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
 
       el.style.width = `${DESIGN_W}px`;
       el.style.height = `${DESIGN_H}px`;
@@ -39,8 +43,7 @@ const App: React.FC = () => {
     applyLayout();
 
     window.addEventListener('resize', applyLayout);
-    // visualViewport resize fires more reliably than window resize on iOS Safari
-    // when the address bar shows/hides.
+    // visualViewport resize: iOS Safari에서 주소창 표시/숨김 시 안정적으로 발화
     window.visualViewport?.addEventListener('resize', applyLayout);
 
     return () => {

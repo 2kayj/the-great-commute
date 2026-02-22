@@ -5,9 +5,11 @@
 }
 
 .app-wrapper {
-  width: 100%;
-  height: 100%;
-  position: relative;
+  /* JS에서 vw/vh 픽셀값으로 직접 제어하므로 CSS width/height는 명시하지 않음 */
+  /* position: fixed로 iOS 스크롤/주소창 영향 완전 차단 */
+  position: fixed;
+  top: 0;
+  left: 0;
   background: #000;  /* letterbox 색상 */
   overflow: hidden;
 }
