@@ -155,7 +155,7 @@ export const GameOverScreen: React.FC = () => {
         </div>
 
         <div className="btn-group">
-          {!usedContinue && (
+          {!usedContinue && currentDay > 1 && (
             <button className="btn-continue" onClick={handleContinue}>
               이어하기
             </button>

@@ -10,12 +10,12 @@ import { BaseFollower } from './BaseFollower';
 
 export class FollowerManager {
   private followers: BaseFollower[] = [
-    new TurtleFollower(),      // 50m
+    new DogFollower(),         // 50m
     new ButterflyFollower(),   // 100m
     new RainEffect(),          // 150m
     new CatFollower(),         // 200m
     new SparrowFollower(),     // 250m
-    new DogFollower(),         // 300m
+    new TurtleFollower(),      // 300m
     new FireflyFollower(),     // 350m
   ];
 
