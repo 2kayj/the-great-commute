@@ -12,6 +12,8 @@ html, body {
 }
 
 :root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;

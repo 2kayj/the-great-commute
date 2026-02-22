@@ -21,12 +21,20 @@ const App: React.FC = () => {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
 
-      const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
+      // safe-area 읽기 (상태바/노치 영역)
+      const style = getComputedStyle(document.documentElement);
+      const safeTop = parseFloat(style.getPropertyValue('--sat')) || 0;
+      const safeBottom = parseFloat(style.getPropertyValue('--sab')) || 0;
+
+      // safe-area 제외한 실제 사용 가능 영역
+      const availH = vh - safeTop - safeBottom;
+
+      const scale = Math.min(vw / DESIGN_W, availH / DESIGN_H);
       const scaledW = DESIGN_W * scale;
       const scaledH = DESIGN_H * scale;
 
       el.style.left = `${(vw - scaledW) / 2}px`;
-      el.style.top = `${(vh - scaledH) / 2}px`;
+      el.style.top = `${safeTop + (availH - scaledH) / 2}px`;
       el.style.transform = `scale(${scale})`;
     };
 
