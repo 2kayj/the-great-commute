@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useRecordStore } from '../store/recordStore';
+import { useStageStore } from '../store/stageStore';
 import { GameLoop } from '../engine/GameLoop';
 import { Physics } from '../engine/Physics';
 import { CharacterRenderer } from '../engine/CharacterRenderer';
@@ -8,6 +9,7 @@ import { BackgroundRenderer } from '../engine/BackgroundRenderer';
 import { InputManager } from '../engine/InputManager';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, CHARACTER_X, GROUND_Y } from '../utils/constants';
 import { FollowerManager } from '../engine/followers/FollowerManager';
+import { StageTransitionOverlay } from './StageTransitionOverlay';
 import './GameScreen.css';
 
 const SPEECH_MESSAGES: Record<number, string> = {
@@ -42,14 +44,25 @@ export const GameScreen: React.FC = () => {
   const directionRef      = useRef<-1 | 0 | 1>(0);
   const gameOverFiredRef  = useRef<boolean>(false);
   const gameOverTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stageClearedRef   = useRef<boolean>(false);
 
-  const { setPhase, setDistance, setIsNewRecord } = useGameStore();
+  const { phase, setPhase, setDistance, setIsNewRecord } = useGameStore();
   const { bestDistance, submitRecord } = useRecordStore();
   const bestDistRef = useRef(bestDistance);
   bestDistRef.current = bestDistance;
 
-  // Stable refs for store actions — prevents useEffect from re-running
-  // when Zustand returns new function references across renders.
+  // Stage store
+  const { currentDay, stageBaseDistance, difficultyMultiplier, advanceStage } = useStageStore();
+  const stageBaseDistRef = useRef(stageBaseDistance);
+  stageBaseDistRef.current = stageBaseDistance;
+  const currentDayRef = useRef(currentDay);
+  currentDayRef.current = currentDay;
+  const diffMultRef = useRef(difficultyMultiplier);
+  diffMultRef.current = difficultyMultiplier;
+  const advanceStageRef = useRef(advanceStage);
+  advanceStageRef.current = advanceStage;
+
+  // Stable refs for store actions
   const setPhaseRef       = useRef(setPhase);
   const setDistanceRef    = useRef(setDistance);
   const setIsNewRecordRef = useRef(setIsNewRecord);
@@ -61,6 +74,7 @@ export const GameScreen: React.FC = () => {
 
   // HUD refs (avoid re-renders)
   const distanceTopRef   = useRef<HTMLSpanElement>(null);
+  const dayLabelRef      = useRef<HTMLSpanElement>(null);
   const dangerOverlayRef = useRef<HTMLDivElement>(null);
 
   // Speech bubble refs
@@ -68,14 +82,8 @@ export const GameScreen: React.FC = () => {
   const lastMilestoneRef     = useRef<number>(0);
   const speechTimeoutRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Character head Y in canvas coords (for speech bubble positioning)
-  // bodyTopY = GROUND_Y - bodyH*2 - neckLen - headR*2 - 20
-  //          = 720 - 36 - 10 - 28 - 20 = 626
-  // headY ≈ bodyTopY - 2 (neckBase offset) - neck length (~10px) = ~614
-  // Add neck chain travel: approximately 614px from top of canvas
-  // Speech bubble sits ~60px above headY center (headR=14 + bubble height margin)
-  const CHAR_HEAD_CANVAS_Y = 614; // approximate head center Y in canvas coords
-  const SPEECH_BUBBLE_OFFSET = 60; // px above head center
+  const CHAR_HEAD_CANVAS_Y = 614;
+  const SPEECH_BUBBLE_OFFSET = 60;
   const speechBubbleTopPx = CHAR_HEAD_CANVAS_Y - SPEECH_BUBBLE_OFFSET;
 
   const setupCanvas = useCallback(() => {
@@ -122,6 +130,10 @@ export const GameScreen: React.FC = () => {
       distanceTopRef.current.textContent = distStr;
     }
 
+    if (dayLabelRef.current) {
+      dayLabelRef.current.textContent = `Day ${currentDayRef.current}`;
+    }
+
     if (dangerOverlayRef.current) {
       dangerOverlayRef.current.style.display = isDangerous ? 'block' : 'none';
     }
@@ -146,10 +158,22 @@ export const GameScreen: React.FC = () => {
     const followerManager = followerManagerRef.current;
     const input           = inputRef.current;
 
-    physics.reset();
     background.reset();
     followerManager.reset();
     gameOverFiredRef.current = false;
+
+    // Setup for current stage
+    const stageState = useStageStore.getState();
+    if (stageState.usedContinue && stageState.stageBaseDistance > 0) {
+      // Continue: resume from current Day's start point
+      physics.resetForContinue(stageState.stageBaseDistance, stageState.difficultyMultiplier);
+    } else {
+      // Fresh start: reset everything
+      physics.reset();
+      physics.setStageMultiplier(stageState.difficultyMultiplier);
+    }
+    followerManager.setupForStage(stageState.stageBaseDistance, stageState.currentDay);
+    stageClearedRef.current = false;
 
     if (containerRef.current) {
       input.attach(containerRef.current, (state) => {
@@ -158,6 +182,12 @@ export const GameScreen: React.FC = () => {
     }
 
     const update = (deltaTime: number) => {
+      // Skip physics during stage transition (overlay is shown on top)
+      const currentPhase = useGameStore.getState().phase;
+      if (currentPhase === 'stage-transition') {
+        return;
+      }
+
       const dir = directionRef.current;
       physics.update(deltaTime, dir);
 
@@ -177,6 +207,19 @@ export const GameScreen: React.FC = () => {
 
       followerManager.update(deltaTime, state);
 
+      // Stage clear detection: 400m per stage
+      const nextStageDist = stageBaseDistRef.current + 400;
+      if (state.distance >= nextStageDist && !stageClearedRef.current && !state.isGameOver) {
+        stageClearedRef.current = true;
+        advanceStageRef.current();
+        // Read updated stage state after advance
+        const newStageState = useStageStore.getState();
+        physics.setStageMultiplier(newStageState.difficultyMultiplier);
+        followerManager.setupForStage(newStageState.stageBaseDistance, newStageState.currentDay);
+        setPhaseRef.current('stage-transition');
+        return;
+      }
+
       updateHUD(
         state.distance,
         physics.isDangerous(),
@@ -184,11 +227,10 @@ export const GameScreen: React.FC = () => {
 
       if (state.isGameOver && !gameOverFiredRef.current) {
         gameOverFiredRef.current = true;
-        // Commit final distance to store only once at game over
+        const stageState = useStageStore.getState();
         setDistanceRef.current(state.distance);
-        const isNew = submitRecordRef.current(state.distance);
+        const isNew = submitRecordRef.current(state.distance, stageState.currentDay);
         setIsNewRecordRef.current(isNew);
-        // Let the fall-over animation play (550ms) then show the game over screen
         gameOverTimerRef.current = setTimeout(() => {
           gameLoopRef.current?.stop();
           setPhaseRef.current('over');
@@ -226,6 +268,11 @@ export const GameScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setupCanvas, updateHUD]);
 
+  const handleStageTransitionComplete = useCallback(() => {
+    stageClearedRef.current = false;
+    setPhase('playing');
+  }, [setPhase]);
+
   return (
     <div className="game-screen" ref={containerRef}>
       <canvas ref={canvasRef} className="game-canvas" />
@@ -233,13 +280,15 @@ export const GameScreen: React.FC = () => {
       {/* HUD Top */}
       <div className="hud-top">
         <div className="hud-distance">
+          <span className="hud-day" ref={dayLabelRef}>Day {currentDay}</span>
+          <span className="hud-separator">|</span>
           <span className="distance-num" ref={distanceTopRef}>0</span>
           <span className="distance-unit">m</span>
         </div>
         <div className="hud-best">Best: {bestDistance}m</div>
       </div>
 
-      {/* Speech bubble — positioned dynamically at character head */}
+      {/* Speech bubble */}
       <div
         className="speech-bubble"
         ref={speechBubbleRef}
@@ -261,6 +310,14 @@ export const GameScreen: React.FC = () => {
 
       {/* Danger overlay */}
       <div className="danger-overlay" ref={dangerOverlayRef} />
+
+      {/* Stage transition overlay */}
+      {phase === 'stage-transition' && (
+        <StageTransitionOverlay
+          dayNumber={currentDay}
+          onComplete={handleStageTransitionComplete}
+        />
+      )}
     </div>
   );
 };

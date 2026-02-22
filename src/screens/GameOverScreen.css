@@ -28,7 +28,7 @@
     gap: 10px;
   }
 
-  .result-value {
+  .result-distance {
     font-size: 30px;
   }
 
@@ -52,7 +52,7 @@
     gap: 8px;
   }
 
-  .result-value {
+  .result-distance {
     font-size: 26px;
   }
 
@@ -128,7 +128,7 @@
 
 .aigo-text {
   position: absolute;
-  top: 20px;
+  bottom: 148px;
   left: 50%;
   transform: translateX(-50%) rotate(-3deg);
   font-size: 26px;
@@ -201,13 +201,7 @@
 }
 
 .result-value {
-  font-size: 38px;
-  font-weight: bold;
-  color: #222;
-  letter-spacing: -2px;
-  line-height: 1;
   display: block;
-  animation: countUp 0.5s ease-out;
 }
 
 @keyframes countUp {
@@ -304,4 +298,47 @@
 .btn-secondary:active {
   box-shadow: 0 0 0 #222;
   transform: translate(3px, 3px);
+}
+
+/* Continue button */
+.btn-continue {
+  width: 100%;
+  height: 56px;
+  background: #FFD700;
+  color: #222;
+  font-size: 18px;
+  font-weight: bold;
+  border: 3px solid #222;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 #555;
+  transition: box-shadow 0.1s, transform 0.1s;
+}
+
+.btn-continue:hover {
+  box-shadow: 2px 2px 0 #555;
+  transform: translate(2px, 2px);
+}
+
+.btn-continue:active {
+  box-shadow: 0 0 0 #555;
+  transform: translate(4px, 4px);
+}
+
+/* Result display adjustments for Day info */
+.result-day {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  color: #777;
+  margin-bottom: 2px;
+}
+
+.result-distance {
+  font-size: 38px;
+  font-weight: bold;
+  color: #222;
+  letter-spacing: -2px;
+  line-height: 1;
+  display: block;
+  animation: countUp 0.5s ease-out;
 }

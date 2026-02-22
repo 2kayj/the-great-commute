@@ -175,3 +175,17 @@
   0%   { opacity: 1; transform: scale(1) translateY(0); }
   100% { opacity: 0; transform: scale(0.9) translateY(-8px); }
 }
+
+/* Day label in HUD */
+.hud-day {
+  font-size: 14px;
+  font-weight: bold;
+  color: #555;
+}
+
+.hud-separator {
+  font-size: 14px;
+  color: #ccc;
+  margin: 0 6px;
+  font-weight: bold;
+}

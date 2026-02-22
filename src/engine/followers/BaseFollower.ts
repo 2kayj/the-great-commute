@@ -4,7 +4,7 @@ export type FollowerState = 'hidden' | 'entering' | 'following';
 
 export abstract class BaseFollower {
   protected time = 0;
-  protected abstract appearDistance: number;
+  protected appearDistance: number = 0;
   protected state: FollowerState = 'hidden';
   protected entranceProgress = 0;
   protected entranceDuration = 0.8; // seconds
@@ -48,5 +48,9 @@ export abstract class BaseFollower {
   protected abstract onUpdate(dt: number, physicsState: PhysicsState): void;
   protected abstract onRender(ctx: CanvasRenderingContext2D, groundY: number): void;
   protected onEnter(): void {}
+  setAppearDistance(distance: number): void {
+    this.appearDistance = distance;
+  }
+
   protected onReset(): void {}
 }

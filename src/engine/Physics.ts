@@ -25,6 +25,7 @@ export class Physics {
   private state: PhysicsState;
   private accumulator: number = 0;
   private difficultyManager: DifficultyManager = new DifficultyManager();
+  private stageMultiplier: number = 1.0;
 
   constructor() {
     this.state = {
@@ -48,6 +49,25 @@ export class Physics {
       walkPhase: 0,
       isGameOver: false,
     };
+    this.accumulator = 0;
+    this.stageMultiplier = 1.0;
+  }
+
+  setStageMultiplier(multiplier: number): void {
+    this.stageMultiplier = multiplier;
+  }
+
+  resetForContinue(stageBaseDistance: number, stageMultiplier: number): void {
+    this.state = {
+      angle: 0,
+      angularVelocity: (Math.random() - 0.5) * 0.08,
+      distance: stageBaseDistance,
+      elapsedTime: this.state.elapsedTime, // keep elapsed time
+      speed: INITIAL_SPEED,
+      walkPhase: 0,
+      isGameOver: false,
+    };
+    this.stageMultiplier = stageMultiplier;
     this.accumulator = 0;
   }
 
@@ -73,10 +93,10 @@ export class Physics {
     );
 
     // Torque from gravity (pendulum-like), scaled by difficulty
-    const gravityTorque = GRAVITY * diffConfig.gravityMultiplier * Math.sin(angle);
+    const gravityTorque = GRAVITY * diffConfig.gravityMultiplier * this.stageMultiplier * Math.sin(angle);
 
     // Torque from player input
-    const inputTorque = INPUT_FORCE * inputDirection;
+    const inputTorque = INPUT_FORCE * this.stageMultiplier * inputDirection;
 
     const effectiveDamping = ANGULAR_DAMPING * diffConfig.angularDampingMultiplier;
 

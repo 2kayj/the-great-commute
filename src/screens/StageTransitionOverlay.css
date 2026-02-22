@@ -1,0 +1,77 @@
+.stage-transition {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+}
+
+/* Phase: fadeout - screen goes black */
+.stage-transition--fadeout {
+  background: rgba(0, 0, 0, 0);
+  animation: stFadeToBlack 0.8s ease-out forwards;
+}
+
+.stage-transition--fadeout .stage-transition__content {
+  opacity: 0;
+}
+
+/* Phase: text - black screen with text */
+.stage-transition--text {
+  background: #000;
+}
+
+.stage-transition--text .stage-transition__content {
+  animation: stTextAppear 0.4s ease-out forwards;
+}
+
+/* Phase: fadein - black fades away */
+.stage-transition--fadein {
+  background: #000;
+  animation: stFadeFromBlack 0.8s ease-in forwards;
+}
+
+.stage-transition--fadein .stage-transition__content {
+  animation: stTextDisappear 0.3s ease-in forwards;
+}
+
+.stage-transition__content {
+  text-align: center;
+}
+
+.stage-transition__day {
+  font-size: 32px;
+  font-weight: bold;
+  color: #fff;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+.stage-transition__sub {
+  font-size: 16px;
+  font-weight: bold;
+  color: #FFD700;
+  letter-spacing: 1px;
+}
+
+@keyframes stFadeToBlack {
+  0% { background: rgba(0, 0, 0, 0); }
+  100% { background: rgba(0, 0, 0, 1); }
+}
+
+@keyframes stFadeFromBlack {
+  0% { background: rgba(0, 0, 0, 1); }
+  100% { background: rgba(0, 0, 0, 0); }
+}
+
+@keyframes stTextAppear {
+  0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes stTextDisappear {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}

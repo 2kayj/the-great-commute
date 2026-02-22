@@ -1,4 +1,4 @@
-export type GamePhase = 'ready' | 'countdown' | 'playing' | 'over';
+export type GamePhase = 'ready' | 'countdown' | 'playing' | 'over' | 'stage-transition';
 
 export interface Vec2 {
   x: number;

@@ -1,11 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+interface RecentRecord {
+  distance: number;
+  maxDay: number;
+}
+
 interface RecordStore {
   bestDistance: number;
-  recentRecords: number[];
+  bestDay: number;
+  recentRecords: RecentRecord[];
 
-  submitRecord: (distance: number) => boolean;
+  submitRecord: (distance: number, maxDay: number) => boolean;
   clearRecords: () => void;
 }
 
@@ -13,22 +19,24 @@ export const useRecordStore = create<RecordStore>()(
   persist(
     (set, get) => ({
       bestDistance: 0,
+      bestDay: 0,
       recentRecords: [],
 
-      submitRecord: (distance: number): boolean => {
-        const { bestDistance, recentRecords } = get();
+      submitRecord: (distance: number, maxDay: number): boolean => {
+        const { bestDistance, bestDay, recentRecords } = get();
         const rounded = Math.floor(distance);
         const isNew = rounded > bestDistance;
 
         set({
           bestDistance: isNew ? rounded : bestDistance,
-          recentRecords: [rounded, ...recentRecords].slice(0, 5),
+          bestDay: maxDay > bestDay ? maxDay : bestDay,
+          recentRecords: [{ distance: rounded, maxDay }, ...recentRecords].slice(0, 5),
         });
 
         return isNew;
       },
 
-      clearRecords: () => set({ bestDistance: 0, recentRecords: [] }),
+      clearRecords: () => set({ bestDistance: 0, bestDay: 0, recentRecords: [] }),
     }),
     {
       name: 'office-walk-records',
