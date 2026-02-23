@@ -1,6 +1,8 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT, COLORS, GROUND_Y } from '../utils/constants';
 import { seededRandom, wobbleOffset } from '../utils/math';
 import type { BuildingData, CloudData } from '../types/game.types';
+import type { BackgroundTheme } from './themes/BackgroundTheme';
+import { CompanyTheme } from './themes/CompanyTheme';
 
 const NEAR_BUILDING_SPEED = 1.0;
 const FAR_BUILDING_SPEED = 0.35;
@@ -29,9 +31,20 @@ export class BackgroundRenderer {
   private goalBuilding: GoalBuildingData | null = null;
   private enteringProgress: number = 0; // 0 = offscreen right, 1 = resting position
 
+  // Active theme (default: company)
+  private theme: BackgroundTheme = CompanyTheme;
+
   constructor() {
     this.initBuildings();
     this.initClouds();
+  }
+
+  setTheme(theme: BackgroundTheme): void {
+    this.theme = theme;
+  }
+
+  getTheme(): BackgroundTheme {
+    return this.theme;
   }
 
   private initBuildings(): void {
@@ -108,11 +121,14 @@ export class BackgroundRenderer {
     this.nearScrollX += NEAR_BUILDING_SPEED * speedFactor * speed * deltaTime;
     this.farScrollX  += FAR_BUILDING_SPEED  * speedFactor * speed * deltaTime;
 
-    for (const cloud of this.clouds) {
-      cloud.x -= cloud.speed * speedFactor * speed * deltaTime;
-      if (cloud.x < -200) {
-        cloud.x = CANVAS_WIDTH + 50 + Math.random() * 200;
-        cloud.y = 20 + Math.random() * 100;
+    // Only scroll clouds when theme has clouds
+    if (this.theme.colors.cloudFill) {
+      for (const cloud of this.clouds) {
+        cloud.x -= cloud.speed * speedFactor * speed * deltaTime;
+        if (cloud.x < -200) {
+          cloud.x = CANVAS_WIDTH + 50 + Math.random() * 200;
+          cloud.y = 20 + Math.random() * 100;
+        }
       }
     }
   }
@@ -164,14 +180,29 @@ export class BackgroundRenderer {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    // Sky
-    ctx.fillStyle = COLORS.bg;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    const { theme, time } = this;
 
-    this.renderClouds(ctx);
+    // Sky (theme-controlled)
+    theme.renderSky(ctx, time);
+
+    // Clouds (only if theme has cloud colors)
+    if (theme.colors.cloudFill) {
+      this.renderClouds(ctx);
+    }
+
+    // Extra behind buildings (stars, aurora, etc.)
+    if (theme.renderExtraBack) {
+      theme.renderExtraBack(ctx, time);
+    }
+
     this.renderBuildingLayer(ctx, this.farBuildings, this.farScrollX, 0.35, true);
     this.renderBuildingLayer(ctx, this.nearBuildings, this.nearScrollX, 1.0, false);
     this.renderGround(ctx);
+
+    // Extra in front of ground/buildings (sparkles, dust, ice crystals, etc.)
+    if (theme.renderExtraFront) {
+      theme.renderExtraFront(ctx, time);
+    }
 
     // Goal building rendered on top of everything (after ground)
     if (this.goalBuilding) {
@@ -192,13 +223,16 @@ export class BackgroundRenderer {
     scale: number,
     seed: number
   ): void {
+    const { cloudFill, cloudStroke } = this.theme.colors;
+    if (!cloudFill) return;
+
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
 
     const t = this.time * 0.1;
-    ctx.strokeStyle = COLORS.line;
-    ctx.fillStyle = '#FFFFFF';
+    ctx.strokeStyle = cloudStroke ?? COLORS.line;
+    ctx.fillStyle = cloudFill;
     ctx.lineWidth = 2 / scale;
 
     ctx.beginPath();
@@ -253,8 +287,16 @@ export class BackgroundRenderer {
     const t = this.time;
     const bottomY = GROUND_Y;
 
-    ctx.strokeStyle = COLORS.line;
-    ctx.fillStyle = COLORS.bg;
+    // Delegate to theme-specific drawing if available
+    if (this.theme.drawBuilding) {
+      this.theme.drawBuilding(ctx, bx, topY, width, bottomY, wobble, t, isFar);
+      return;
+    }
+
+    const { buildingFill, buildingStroke, windowFill } = this.theme.colors;
+
+    ctx.strokeStyle = buildingStroke;
+    ctx.fillStyle = buildingFill;
     ctx.lineWidth = isFar ? 1.5 : 2;
     ctx.lineJoin = 'round';
 
@@ -292,7 +334,7 @@ export class BackgroundRenderer {
     ctx.fill();
     ctx.stroke();
 
-    // Antenna (sometimes)
+    // Antenna (sometimes) — use building stroke color
     if (!isFar && (Math.abs(wobble[0] ?? 0) > 1)) {
       const antX = bx + width / 2;
       ctx.beginPath();
@@ -305,7 +347,7 @@ export class BackgroundRenderer {
       );
       ctx.stroke();
 
-      ctx.fillStyle = COLORS.bg;
+      ctx.fillStyle = buildingFill;
       ctx.beginPath();
       ctx.arc(antX + Math.sin(t * 0.5) * 3, topY - 28, 3.5, 0, Math.PI * 2);
       ctx.fill();
@@ -315,8 +357,8 @@ export class BackgroundRenderer {
     if (isFar) return;
 
     // Windows (slightly wobbly quads)
-    ctx.fillStyle = '#F8F8F8';
-    ctx.strokeStyle = COLORS.line;
+    ctx.fillStyle = windowFill;
+    ctx.strokeStyle = buildingStroke;
     ctx.lineWidth = 1.5;
 
     for (const win of building.windows) {
@@ -341,9 +383,10 @@ export class BackgroundRenderer {
 
   private renderGround(ctx: CanvasRenderingContext2D): void {
     const scrollX = this.nearScrollX;
+    const { ground, groundFill } = this.theme.colors;
 
     // Ground line (bumpy)
-    ctx.strokeStyle = COLORS.line;
+    ctx.strokeStyle = ground;
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -357,7 +400,7 @@ export class BackgroundRenderer {
     ctx.stroke();
 
     // Ground fill
-    ctx.fillStyle = COLORS.groundFill;
+    ctx.fillStyle = groundFill;
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y);
     for (let x = 0; x <= CANVAS_WIDTH; x += 20) {
@@ -395,6 +438,16 @@ export class BackgroundRenderer {
     const t = this.time;
     const { wobble, windows } = this.goalBuilding;
 
+    // Delegate to theme-specific goal building drawing if available
+    if (this.theme.drawGoalBuilding) {
+      ctx.save();
+      this.theme.drawGoalBuilding(ctx, screenX, topY, w, h, bottomY, wobble, windows, t);
+      ctx.restore();
+      return;
+    }
+
+    const { buildingFill, buildingStroke, windowFill } = this.theme.colors;
+
     ctx.save();
 
     // --- Building body (same wobble-bezier style as near buildings) ---
@@ -407,8 +460,8 @@ export class BackgroundRenderer {
     const w6 = wobble[6] ?? 0;
     const w7 = wobble[7] ?? 0;
 
-    ctx.strokeStyle = COLORS.line;
-    ctx.fillStyle = COLORS.bg;
+    ctx.strokeStyle = buildingStroke;
+    ctx.fillStyle = buildingFill;
     ctx.lineWidth = 2;
     ctx.lineJoin = 'round';
 
@@ -435,7 +488,7 @@ export class BackgroundRenderer {
 
     // --- Antenna ---
     const antX = screenX + w / 2;
-    ctx.strokeStyle = COLORS.line;
+    ctx.strokeStyle = buildingStroke;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(antX, topY);
@@ -446,15 +499,15 @@ export class BackgroundRenderer {
       topY - 25
     );
     ctx.stroke();
-    ctx.fillStyle = COLORS.bg;
+    ctx.fillStyle = buildingFill;
     ctx.beginPath();
     ctx.arc(antX + Math.sin(t * 0.5) * 3, topY - 28, 3.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
     // --- Windows ---
-    ctx.fillStyle = '#F8F8F8';
-    ctx.strokeStyle = COLORS.line;
+    ctx.fillStyle = windowFill;
+    ctx.strokeStyle = buildingStroke;
     ctx.lineWidth = 1.5;
 
     for (const win of windows) {
@@ -476,14 +529,16 @@ export class BackgroundRenderer {
     }
 
     // --- Door (centered, at bottom of building) ---
+    // Door colors adapt slightly to world theme
+    const isDark = this.theme.world !== 'company' && this.theme.world !== 'politics';
     const doorW = 128;
     const doorH = 192;
     const doorX = screenX + (w - doorW) / 2;
     const doorY = bottomY - doorH;
 
     // Door frame
-    ctx.fillStyle = '#8B6914';
-    ctx.strokeStyle = COLORS.line;
+    ctx.fillStyle = isDark ? '#5C3A14' : '#8B6914';
+    ctx.strokeStyle = buildingStroke;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.rect(doorX, doorY, doorW, doorH);
@@ -491,8 +546,13 @@ export class BackgroundRenderer {
     ctx.stroke();
 
     // Left glass panel
-    ctx.fillStyle = '#B8D4E8';
-    ctx.strokeStyle = COLORS.line;
+    const glassFill = this.theme.world === 'isekai'
+      ? '#7030C0'
+      : this.theme.world === 'space'
+        ? '#304080'
+        : '#B8D4E8';
+    ctx.fillStyle = glassFill;
+    ctx.strokeStyle = buildingStroke;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.rect(doorX + 8, doorY + 12, 48, doorH - 24);
@@ -507,7 +567,7 @@ export class BackgroundRenderer {
 
     // Door handles
     ctx.fillStyle = '#FFD700';
-    ctx.strokeStyle = COLORS.line;
+    ctx.strokeStyle = buildingStroke;
     ctx.lineWidth = 2;
     const handleY = doorY + doorH * 0.55;
     ctx.beginPath();
@@ -519,24 +579,33 @@ export class BackgroundRenderer {
     ctx.fill();
     ctx.stroke();
 
-    // --- Building sign (OFFICE label) ---
+    // --- Building sign (adapted per world) ---
     const signW = w - 64;
     const signH = 64;
     const signX = screenX + 32;
     const signY = topY + 56;
-    ctx.fillStyle = '#4A90D9';
-    ctx.strokeStyle = COLORS.line;
+
+    const signColors: Record<string, { bg: string; text: string; label: string }> = {
+      company:  { bg: '#4A90D9', text: '#FFFFFF', label: 'OFFICE' },
+      politics: { bg: '#8B1A1A', text: '#FFD700', label: '청와대' },
+      isekai:   { bg: '#4A1A8B', text: '#FFE4A0', label: '마왕성' },
+      space:    { bg: '#0A1A4A', text: '#7FDBFF', label: 'BASE' },
+    };
+    const sign = signColors[this.theme.world] ?? signColors['company']!;
+
+    ctx.fillStyle = sign.bg;
+    ctx.strokeStyle = buildingStroke;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.rect(signX, signY, signW, signH);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = sign.text;
     ctx.font = 'bold 24px "Comic Sans MS", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('OFFICE', screenX + w / 2, signY + signH / 2);
+    ctx.fillText(sign.label, screenX + w / 2, signY + signH / 2);
 
     ctx.restore();
   }

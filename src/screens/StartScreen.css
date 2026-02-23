@@ -193,6 +193,19 @@
   line-height: 1.6;
 }
 
+.loop-indicator {
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+  color: #222;
+  letter-spacing: 0.5px;
+  background: #fff8dc;
+  border: 2px solid #222;
+  padding: 4px 12px;
+  display: inline-block;
+  align-self: center;
+}
+
 .btn-start {
   width: 100%;
   height: 60px;

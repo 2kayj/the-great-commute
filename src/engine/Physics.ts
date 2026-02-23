@@ -10,6 +10,7 @@ import {
 } from '../utils/constants';
 import { clamp } from '../utils/math';
 import { DifficultyManager } from './DifficultyManager';
+import type { EventFrame } from './EventManager';
 
 export interface PhysicsState {
   angle: number;
@@ -26,7 +27,10 @@ export class Physics {
   private accumulator: number = 0;
   private difficultyManager: DifficultyManager = new DifficultyManager();
   private stageMultiplier: number = 1.0;
+  private speedMultiplier: number = 1.0;
   private zeroGravity: boolean = false;
+  private invincible: boolean = false;
+  private eventFrame: EventFrame = { bumpImpulse: 0, windTorque: 0, slopeOffset: 0 };
 
   constructor() {
     this.state = {
@@ -52,14 +56,31 @@ export class Physics {
     };
     this.accumulator = 0;
     this.stageMultiplier = 1.0;
+    this.speedMultiplier = 1.0;
   }
 
   setStageMultiplier(multiplier: number): void {
     this.stageMultiplier = multiplier;
   }
 
+  setSpeedMultiplier(mult: number): void {
+    this.speedMultiplier = mult;
+  }
+
+  setRankDampingPenalty(penalty: number): void {
+    this.difficultyManager.setRankDampingPenalty(penalty);
+  }
+
   setZeroGravity(enabled: boolean): void {
     this.zeroGravity = enabled;
+  }
+
+  setInvincible(enabled: boolean): void {
+    this.invincible = enabled;
+  }
+
+  setEventFrame(frame: EventFrame): void {
+    this.eventFrame = { ...frame };
   }
 
   resetForContinue(stageBaseDistance: number, stageMultiplier: number): void {
@@ -96,9 +117,9 @@ export class Physics {
 
       // Speed, distance, walkPhase keep updating so character walks naturally
       this.state.speed = clamp(
-        INITIAL_SPEED + this.state.elapsedTime * SPEED_INCREMENT,
+        (INITIAL_SPEED + this.state.elapsedTime * SPEED_INCREMENT) * this.speedMultiplier,
         INITIAL_SPEED,
-        MAX_SPEED
+        MAX_SPEED * this.speedMultiplier
       );
       this.state.distance += (this.state.speed / 100) * dt;
       this.state.elapsedTime += dt;
@@ -115,30 +136,44 @@ export class Physics {
       this.state.elapsedTime
     );
 
+    // Slope event shifts the neutral/balance point
+    const effectiveAngle = angle - this.eventFrame.slopeOffset;
+
     // Torque from gravity (pendulum-like), scaled by difficulty
-    const gravityTorque = GRAVITY * diffConfig.gravityMultiplier * this.stageMultiplier * Math.sin(angle);
+    const gravityTorque = GRAVITY * diffConfig.gravityMultiplier * this.stageMultiplier * Math.sin(effectiveAngle);
 
     // Torque from player input
     const inputTorque = INPUT_FORCE * this.stageMultiplier * inputDirection;
 
     const effectiveDamping = ANGULAR_DAMPING * diffConfig.angularDampingMultiplier;
 
-    this.state.angularVelocity += (gravityTorque + inputTorque) * dt;
+    this.state.angularVelocity += (gravityTorque + inputTorque + this.eventFrame.windTorque) * dt;
     this.state.angularVelocity *= effectiveDamping;
+
+    // Bump: one-shot angular velocity impulse, applied once then cleared
+    if (this.eventFrame.bumpImpulse !== 0) {
+      this.state.angularVelocity += this.eventFrame.bumpImpulse;
+      this.eventFrame.bumpImpulse = 0;
+    }
 
     this.state.angle += this.state.angularVelocity * dt;
     this.state.angle = clamp(this.state.angle, -MAX_ANGLE * 1.5, MAX_ANGLE * 1.5);
 
     if (Math.abs(this.state.angle) >= MAX_ANGLE) {
-      this.state.isGameOver = true;
-      return;
+      if (this.invincible) {
+        this.state.angle = 0;
+        this.state.angularVelocity = 0;
+      } else {
+        this.state.isGameOver = true;
+        return;
+      }
     }
 
-    // Speed ramp
+    // Speed ramp — scaled by rank speed multiplier
     this.state.speed = clamp(
-      INITIAL_SPEED + this.state.elapsedTime * SPEED_INCREMENT,
+      (INITIAL_SPEED + this.state.elapsedTime * SPEED_INCREMENT) * this.speedMultiplier,
       INITIAL_SPEED,
-      MAX_SPEED
+      MAX_SPEED * this.speedMultiplier
     );
 
     // Distance (meters, 1 meter = some pixels, scaled)

@@ -1,6 +1,7 @@
 import { VerletChain } from './VerletChain';
 import { COLORS, LEG_UPPER, LEG_LOWER, STEP_HEIGHT } from '../utils/constants';
 import { wobbleOffset } from '../utils/math';
+import type { CharacterItem } from '../types/rank.types';
 
 // ----- Footplant IK types -----
 
@@ -33,6 +34,7 @@ export class CharacterRenderer {
   private leftArm: VerletChain;
   private rightArm: VerletChain;
   private time: number = 0;
+  private currentItem: CharacterItem = 'coffee';
 
   // IK + Verlet hybrid legs
   private leftLegChain: VerletChain;
@@ -380,7 +382,7 @@ export class CharacterRenderer {
     // Arms (in front)
     this.leftArm.render(ctx, 2.5, 1.5, COLORS.line);
     this.rightArm.render(ctx, 2.5, 1.5, COLORS.line);
-    this.renderCoffeeTray(ctx);
+    this.renderItem(ctx);
 
     // Neck
     const neckBaseX = bx;
@@ -547,6 +549,109 @@ export class CharacterRenderer {
     ctx.fillRect(x, y, w, 4);
   }
 
+  setItem(item: CharacterItem): void {
+    this.currentItem = item;
+  }
+
+  private renderItem(ctx: CanvasRenderingContext2D): void {
+    switch (this.currentItem) {
+      case 'coffee': this.renderCoffeeTray(ctx); break;
+      case 'sword':  this.renderSword(ctx);       break;
+      case 'flag':   this.renderFlag(ctx);        break;
+    }
+  }
+
+  private renderSword(ctx: CanvasRenderingContext2D): void {
+    const tipNode = this.rightArm.nodes[this.rightArm.nodes.length - 1];
+    if (!tipNode) return;
+
+    const tx = tipNode.x;
+    const ty = tipNode.y;
+
+    ctx.save();
+    ctx.translate(tx, ty);
+    // Rotate +45deg so sword points forward (character faces right)
+    const swordWobble = wobbleOffset(20, this.time, 0.05);
+    ctx.rotate(Math.PI / 4 + swordWobble);
+
+    // Handle at origin (hand grip point), blade extends upward in local coords
+    // Handle
+    ctx.fillStyle = '#8B4513';
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.rect(-3, 0, 6, 10);
+    ctx.fill();
+    ctx.stroke();
+
+    // Cross-guard
+    ctx.fillStyle = '#FFD700';
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.rect(-8, -4, 16, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    // Blade — extends upward from cross-guard
+    ctx.fillStyle = '#C0C0C0';
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-3, -4);
+    ctx.lineTo(3, -4);
+    ctx.lineTo(wobbleOffset(22, this.time, 0.5), -32);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  private renderFlag(ctx: CanvasRenderingContext2D): void {
+    const tipNode = this.rightArm.nodes[this.rightArm.nodes.length - 1];
+    if (!tipNode) return;
+
+    const tx = tipNode.x;
+    const ty = tipNode.y;
+
+    ctx.save();
+    ctx.translate(tx, ty);
+    const flagWobble = wobbleOffset(20, this.time, 0.04);
+    ctx.rotate(flagWobble);
+
+    // Pole — vertical line going up
+    ctx.strokeStyle = '#AAAAAA';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -25);
+    ctx.stroke();
+
+    // Flag — small rectangular pennant at the top, with wavy edge
+    const wave = Math.sin(this.time * 3) * 2;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(0, -25);        // pole attachment top
+    ctx.lineTo(14 + wave, -21); // top-right corner (waves)
+    ctx.lineTo(14 + wave * 0.5, -17); // bottom-right corner
+    ctx.lineTo(0, -17);        // bottom-left (attached to pole)
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Small star on the flag
+    ctx.fillStyle = COLORS.line;
+    ctx.beginPath();
+    ctx.arc(6, -21, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
   private renderFallingOver(
     ctx: CanvasRenderingContext2D,
     cx: number,
@@ -603,7 +708,7 @@ export class CharacterRenderer {
     // Arms
     this.leftArm.render(ctx, 2.5, 1.5, COLORS.line);
     this.rightArm.render(ctx, 2.5, 1.5, COLORS.line);
-    this.renderCoffeeTray(ctx);
+    this.renderItem(ctx);
 
     // Neck
     const neckBaseX = bx;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'the-great-commute-v8';
+const CACHE_NAME = 'the-great-commute-v9';
 
 const APP_SHELL = [
   '/the-great-commute/',
@@ -30,39 +30,31 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: Cache First, 없으면 Network
+// Fetch: Network First (네트워크 우선, 실패 시 캐시 폴백)
 self.addEventListener('fetch', (event) => {
-  // chrome-extension 등 외부 요청 무시
   if (!event.request.url.startsWith(self.location.origin)) return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-
-      return fetch(event.request)
-        .then((response) => {
-          // 유효한 응답만 캐싱 (opaque 응답 제외)
-          if (
-            !response ||
-            response.status !== 200 ||
-            response.type !== 'basic'
-          ) {
-            return response;
-          }
-
+    fetch(event.request)
+      .then((response) => {
+        // 유효한 응답은 캐시에 업데이트
+        if (response && response.status === 200 && response.type === 'basic') {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
-
-          return response;
-        })
-        .catch(() => {
-          // 오프라인 폴백: HTML 요청은 캐시된 index.html 반환
+        }
+        return response;
+      })
+      .catch(() => {
+        // 오프라인: 캐시에서 서빙
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          // HTML 요청은 캐시된 index.html 반환
           if (event.request.destination === 'document') {
             return caches.match('/the-great-commute/index.html');
           }
         });
-    })
+      })
   );
 });

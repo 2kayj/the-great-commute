@@ -4,28 +4,219 @@ import { useRecordStore } from '../store/recordStore';
 import { useStageStore } from '../store/stageStore';
 import { GameLoop } from '../engine/GameLoop';
 import { Physics } from '../engine/Physics';
+import { EventManager } from '../engine/EventManager';
 import { CharacterRenderer } from '../engine/CharacterRenderer';
 import { BackgroundRenderer } from '../engine/BackgroundRenderer';
 import { InputManager } from '../engine/InputManager';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, CHARACTER_X, GROUND_Y } from '../utils/constants';
 import { FollowerManager } from '../engine/followers/FollowerManager';
 import { StageTransitionOverlay } from './StageTransitionOverlay';
+import { PromotionScreen } from './PromotionScreen';
+import { CutsceneScreen } from './CutsceneScreen';
+import type { CutsceneType } from './CutsceneScreen';
+import { getRankForDays, RANK_TABLE, LOOP_CYCLE_DAYS } from '../data/rankTable';
+import { getThemeForDays } from '../engine/themes';
+import type { BackgroundTheme } from '../engine/themes';
+import type { RankDef, EventType, WorldPhase } from '../types/rank.types';
 import './GameScreen.css';
 
-const SPEECH_MESSAGES: Record<number, string> = {
-  10:  '출근하기 싫다...',
-  20:  '왜 이렇게 멀어...',
-  30:  '커피 쏟으면 죽는다',
-  40:  '아 다리 풀려...',
-  50:  '지각이다 지각!!',
-  60:  '팀장님 제발...',
-  70:  '월급이 적어...',
-  80:  '오늘도 야근인가',
-  90:  '퇴사할까...',
-  100: '100m 돌파!!',
-  120: '비가 올 것 같은데...',
+type RankGroup =
+  | 'company-junior'
+  | 'company-manager'
+  | 'company-exec'
+  | 'politics-chaebol'
+  | 'politics-politician'
+  | 'isekai-beginner'
+  | 'isekai-skilled'
+  | 'isekai-boss'
+  | 'space-rookie'
+  | 'space-veteran';
+
+function getRankGroup(rankId: string): RankGroup {
+  switch (rankId) {
+    // 회사 - 말단 (신입/대리/과장)
+    case 'sinip': case 'daeri': case 'gwajang':
+      return 'company-junior';
+    // 회사 - 관리직 (팀장/부장)
+    case 'timjang': case 'bujang':
+      return 'company-manager';
+    // 회사 - 임원 (상무/사장)
+    case 'sangmu': case 'sajang':
+      return 'company-exec';
+    // 정치 - 재벌 (회장/총수)
+    case 'hoejang': case 'chongsu':
+      return 'politics-chaebol';
+    // 정치 - 정치인 (국회의원/대통령)
+    case 'gukhoe': case 'daetongryeong':
+      return 'politics-politician';
+    // 이세계 - 초보 (신입용사/기사)
+    case 'yongsa': case 'gisa':
+      return 'isekai-beginner';
+    // 이세계 - 실력자 (마법사/영웅)
+    case 'mabeopsa': case 'yeongung':
+      return 'isekai-skilled';
+    // 이세계 - 최강 (마왕/신)
+    case 'mawang': case 'sin':
+      return 'isekai-boss';
+    // 우주 - 초보 (신입우주인/달탐험가)
+    case 'ujuin': case 'dal':
+      return 'space-rookie';
+    // 우주 - 베테랑 (화성~천왕성)
+    case 'hwaseong': case 'geumseong': case 'mokseong': case 'cheonwang':
+      return 'space-veteran';
+    default:
+      return 'company-junior';
+  }
+}
+
+const GROUP_SPEECHES: Record<RankGroup, Record<number, string>> = {
+  // ===== 회사 - 말단 (신입/대리/과장) =====
+  'company-junior': {
+    10:  '출근하기 싫다...',
+    20:  '왜 이렇게 멀어...',
+    30:  '커피 쏟으면 죽는다',
+    40:  '아 다리 풀려...',
+    50:  '지각이다 지각!!',
+    60:  '팀장님 제발...',
+    70:  '월급이 적어...',
+    80:  '오늘도 야근인가',
+    90:  '퇴사할까...',
+    100: '100m 돌파!!',
+    120: '비가 올 것 같은데...',
+    150: '거의 다 왔다!!',
+  },
+  // ===== 회사 - 관리직 (팀장/부장) =====
+  'company-manager': {
+    10:  '출근하기 싫다...',
+    20:  '왜 이렇게 멀어...',
+    30:  '커피 쏟으면 죽는다',
+    40:  '아 다리 풀려...',
+    50:  '회의 또 잡혔네...',
+    60:  '부하직원이 안 보여...',
+    70:  '보고서가 산더미...',
+    80:  '부서 관리가 힘들어...',
+    90:  '임원 승진 가능할까...',
+    100: '100m 돌파!!',
+    120: '비가 올 것 같은데...',
+    150: '거의 다 왔다!!',
+  },
+  // ===== 회사 - 임원 (상무/사장) =====
+  'company-exec': {
+    10:  '오늘도 출근이다...',
+    20:  '주가가 신경쓰여...',
+    30:  '커피 쏟으면 죽는다',
+    40:  '아 다리 풀려...',
+    50:  '이사회 준비해야지...',
+    60:  '경영이 쉽지 않아...',
+    70:  '실적을 올려야 해...',
+    80:  '회사가 안 보여...',
+    90:  '은퇴할까...',
+    100: '100m 돌파!!',
+    120: '비가 올 것 같은데...',
+    150: '거의 다 왔다!!',
+  },
+  // ===== 정치 - 재벌 (회장/총수) =====
+  'politics-chaebol': {
+    10:  '오늘도 회의인가...',
+    20:  '그룹 경영은 힘들어...',
+    30:  '결재서류 산더미...',
+    40:  '비서실 어디갔어',
+    50:  '후계자 교육시켜야...',
+    60:  '주주총회가 다가온다...',
+    70:  '사업 확장해볼까...',
+    80:  '본사가 왜 이렇게 멀어',
+    100: '100m 돌파!!',
+    120: '언론에 안 걸리겠지...',
+    150: '거의 다 왔다!!',
+  },
+  // ===== 정치 - 정치인 (국회의원/대통령) =====
+  'politics-politician': {
+    10:  '오늘도 회의인가...',
+    20:  '국민을 위하여!',
+    30:  '법안 검토해야지...',
+    40:  '수행원 어디갔어',
+    50:  '국정감사 준비해야..',
+    60:  '지지율이...',
+    70:  '공약을 지키자',
+    80:  '국회가 왜 이렇게 멀어',
+    100: '100m 돌파!!',
+    120: '기자들 피해야...',
+    150: '거의 다 왔다!!',
+  },
+  // ===== 이세계 - 초보 (신입용사/기사) =====
+  'isekai-beginner': {
+    10:  '여기가 이세계인가...',
+    20:  '마나가 부족해...',
+    30:  '검이 무거워...',
+    40:  '몬스터 나오면 어쩌지',
+    50:  '용사인데 왜 허약함',
+    60:  '마왕 잡을 수 있을까...',
+    70:  '물약 어딨어...',
+    80:  '파티원 모집중...',
+    100: '100m 돌파!!',
+    120: '던전 입구가 보인다...',
+    150: '거의 다 왔다!!',
+  },
+  // ===== 이세계 - 실력자 (마법사/영웅) =====
+  'isekai-skilled': {
+    10:  '오늘도 모험이다...',
+    20:  '마나가 부족해...',
+    30:  '장비 강화해야지...',
+    40:  '몬스터쯤이야...',
+    50:  '아직 더 강해져야 해...',
+    60:  '마왕성이 보이는 것 같은데...',
+    70:  '물약 어딨어...',
+    80:  '파티원들 어디갔지...',
+    100: '100m 돌파!!',
+    120: '던전 입구가 보인다...',
+    150: '거의 다 왔다!!',
+  },
+  // ===== 이세계 - 최강 (마왕/신) =====
+  'isekai-boss': {
+    10:  '오늘도 출근이다...',
+    20:  '이세계도 출근이 있다니...',
+    30:  '힘을 주체할 수 없어...',
+    40:  '부하들이 절 기다린다...',
+    50:  '세계 정복도 힘들어...',
+    60:  '용사가 온다던데...',
+    70:  '만렙인데도 허약함...',
+    80:  '마왕성이 왜 이렇게 멀어...',
+    100: '100m 돌파!!',
+    120: '최종보스의 위엄...',
+    150: '거의 다 왔다!!',
+  },
+  // ===== 우주 - 초보 (신입우주인/달탐험가) =====
+  'space-rookie': {
+    10:  '산소가 부족해...',
+    20:  '중력이 이상해...',
+    30:  '깃발 잘 들고 가자',
+    40:  '우주가 너무 넓어...',
+    50:  '교신이 끊겼다...',
+    60:  'NASA 살려줘...',
+    70:  '별이 참 많다...',
+    80:  '지구가 그립다...',
+    100: '100m 돌파!!',
+    120: '외계인인가...?',
+    150: '거의 다 왔다!!',
+  },
+  // ===== 우주 - 베테랑 (화성~천왕성) =====
+  'space-veteran': {
+    10:  '오늘도 탐사다...',
+    20:  '중력이 이상해...',
+    30:  '깃발 또 꽂으러 가자',
+    40:  '이 행성은 처음이네...',
+    50:  '교신이 끊겼다...',
+    60:  '관제센터 응답해...',
+    70:  '별이 참 많다...',
+    80:  '지구는 까먹었다...',
+    100: '100m 돌파!!',
+    120: '외계문명의 흔적인가...?',
+    150: '거의 다 왔다!!',
+  },
 };
-const SPEECH_POOL = Object.values(SPEECH_MESSAGES);
+
+// Fallback pool used for milestones not defined in the current rank group's set
+const SPEECH_FALLBACK_POOL = Object.values(GROUP_SPEECHES['company-junior']);
 
 function easeInOut(t: number): number {
   return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
@@ -42,9 +233,10 @@ export const GameScreen: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const gameLoopRef       = useRef<GameLoop | null>(null);
-  const physicsRef        = useRef<Physics>(new Physics());
-  const characterRef      = useRef<CharacterRenderer>((() => {
+  const gameLoopRef        = useRef<GameLoop | null>(null);
+  const physicsRef         = useRef<Physics>(new Physics());
+  const eventManagerRef    = useRef<EventManager>(new EventManager());
+  const characterRef       = useRef<CharacterRenderer>((() => {
     const cr = new CharacterRenderer();
     cr.warmUp(CHARACTER_X, GROUND_Y);
     return cr;
@@ -69,7 +261,7 @@ export const GameScreen: React.FC = () => {
   bestDistRef.current = bestDistance;
 
   // Stage store
-  const { currentDay, stageBaseDistance, difficultyMultiplier, advanceStage } = useStageStore();
+  const { currentDay, stageBaseDistance, difficultyMultiplier, advanceStage, resetStage, totalCompletedDays, loopCount } = useStageStore();
   const stageBaseDistRef = useRef(stageBaseDistance);
   stageBaseDistRef.current = stageBaseDistance;
   const currentDayRef = useRef(currentDay);
@@ -78,6 +270,15 @@ export const GameScreen: React.FC = () => {
   diffMultRef.current = difficultyMultiplier;
   const advanceStageRef = useRef(advanceStage);
   advanceStageRef.current = advanceStage;
+
+  // Active theme ref — used to avoid unnecessary setTheme calls
+  const currentThemeRef = useRef<BackgroundTheme | null>(null);
+
+  // Promotion state
+  const pendingPromotionRankRef = useRef<RankDef | null>(null);
+
+  // Cutscene state
+  const pendingCutsceneTypeRef = useRef<CutsceneType | null>(null);
 
   // Stable refs for store actions
   const setPhaseRef       = useRef(setPhase);
@@ -93,6 +294,12 @@ export const GameScreen: React.FC = () => {
   const distanceTopRef   = useRef<HTMLSpanElement>(null);
   const dayLabelRef      = useRef<HTMLSpanElement>(null);
   const dangerOverlayRef = useRef<HTMLDivElement>(null);
+
+  // Event indicator refs
+  const windIndicatorRef  = useRef<HTMLDivElement>(null);
+  const slopeIndicatorRef = useRef<HTMLDivElement>(null);
+  const bumpIndicatorRef  = useRef<HTMLDivElement>(null);
+  const bumpHideTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Speech bubble refs
   const speechBubbleRef      = useRef<HTMLDivElement>(null);
@@ -141,6 +348,7 @@ export const GameScreen: React.FC = () => {
   const updateHUD = useCallback((
     distance: number,
     isDangerous: boolean,
+    eventManager: EventManager,
   ) => {
     const distStr = Math.floor(distance).toString();
     if (distanceTopRef.current) {
@@ -155,12 +363,47 @@ export const GameScreen: React.FC = () => {
       dangerOverlayRef.current.style.display = isDangerous ? 'block' : 'none';
     }
 
+    // Wind indicator
+    if (windIndicatorRef.current) {
+      if (eventManager.isWindActive()) {
+        const dir = eventManager.getWindDirection();
+        windIndicatorRef.current.textContent = dir > 0 ? '💨 바람 →' : '← 바람 💨';
+        windIndicatorRef.current.style.display = 'flex';
+      } else {
+        windIndicatorRef.current.style.display = 'none';
+      }
+    }
+
+    // Slope indicator
+    if (slopeIndicatorRef.current) {
+      if (eventManager.isSlopeActive()) {
+        const dir = eventManager.getSlopeDirection();
+        slopeIndicatorRef.current.textContent = dir > 0 ? '⛰️ 오르막 →' : '← 오르막 ⛰️';
+        slopeIndicatorRef.current.style.display = 'flex';
+      } else {
+        slopeIndicatorRef.current.style.display = 'none';
+      }
+    }
+
+    // Bump flash: show for 0.5s after last bump
+    if (bumpIndicatorRef.current) {
+      const elapsed = Date.now() - eventManager.getLastBumpTime();
+      if (eventManager.getLastBumpTime() > 0 && elapsed < 500) {
+        bumpIndicatorRef.current.style.display = 'flex';
+      } else {
+        bumpIndicatorRef.current.style.display = 'none';
+      }
+    }
+
     // Speech bubble milestone check
     const milestone = Math.floor(distance / 10) * 10;
     if (milestone > 0 && milestone !== lastMilestoneRef.current) {
       lastMilestoneRef.current = milestone;
-      const message = SPEECH_MESSAGES[milestone]
-        ?? SPEECH_POOL[Math.floor(Math.random() * SPEECH_POOL.length)];
+      const currentRank = getRankForDays(useStageStore.getState().totalCompletedDays);
+      const group = getRankGroup(currentRank.id);
+      const groupMessages = GROUP_SPEECHES[group];
+      const message = groupMessages?.[milestone]
+        ?? SPEECH_FALLBACK_POOL[Math.floor(Math.random() * SPEECH_FALLBACK_POOL.length)];
       if (message) showSpeechBubble(message);
     }
   }, [showSpeechBubble]);
@@ -170,6 +413,7 @@ export const GameScreen: React.FC = () => {
     if (!ctx) return;
 
     const physics         = physicsRef.current;
+    const eventManager    = eventManagerRef.current;
     const character       = characterRef.current;
     const background      = backgroundRef.current;
     const followerManager = followerManagerRef.current;
@@ -179,20 +423,77 @@ export const GameScreen: React.FC = () => {
     followerManager.reset();
     gameOverFiredRef.current = false;
 
+    // Apply theme for the current stage
+    const initialTheme = getThemeForDays(useStageStore.getState().totalCompletedDays);
+    if (currentThemeRef.current !== initialTheme) {
+      background.setTheme(initialTheme);
+      currentThemeRef.current = initialTheme;
+    }
+
     // Reset entering state
     enteringRef.current = { active: false, elapsed: 0, charX: CHARACTER_X, charOpacity: 1 };
 
     // Setup for current stage
     const stageState = useStageStore.getState();
-    if (stageState.usedContinue && stageState.stageBaseDistance > 0) {
-      // Continue: resume from current Day's start point
+    if (stageState.stageBaseDistance > 0) {
+      // Resume from current Day's start point (covers both continue and fresh page load)
       physics.resetForContinue(stageState.stageBaseDistance, stageState.difficultyMultiplier);
     } else {
-      // Fresh start: reset everything
+      // Day 1: reset everything
       physics.reset();
       physics.setStageMultiplier(stageState.difficultyMultiplier);
     }
-    followerManager.setupForStage(stageState.stageBaseDistance, stageState.currentDay);
+
+    // Debug mode
+    const debugParams = new URLSearchParams(window.location.search);
+    const isDebug = debugParams.has('debug');
+    if (isDebug) physics.setInvincible(true);
+
+    // Debug: jump to specific day via ?startDay=N
+    const startDayParam = debugParams.get('startDay');
+    if (startDayParam && !stageState.usedContinue) {
+      const targetDays = parseInt(startDayParam, 10);
+      if (targetDays > 0) {
+        const baseDist = targetDays * 200;
+        useStageStore.setState({
+          totalCompletedDays: targetDays,
+          currentDay: targetDays + 1,
+          stageBaseDistance: baseDist,
+          difficultyMultiplier: 1.0,
+        });
+        // Sync refs immediately so game loop sees correct values
+        stageBaseDistRef.current = baseDist;
+        currentDayRef.current = targetDays + 1;
+        diffMultRef.current = 1.0;
+        physics.reset();
+        physics.resetForContinue(baseDist, 1.0);
+      }
+    }
+
+    // Re-read store after potential jump
+    const effectiveState = useStageStore.getState();
+
+    // Apply rank-based speed multiplier (scales with loop count too)
+    const initialRankDef = getRankForDays(effectiveState.totalCompletedDays);
+    const initialEffectiveSpeedMult = initialRankDef.speedMultiplier * (1 + effectiveState.loopCount * 0.1);
+    physics.setSpeedMultiplier(initialEffectiveSpeedMult);
+    const initialDampingPenalty = (initialRankDef.speedMultiplier - 1.0) * 0.045;
+    physics.setRankDampingPenalty(initialDampingPenalty);
+
+    // Apply held item for the current rank
+    character.setItem(initialRankDef.item);
+
+    // Setup EventManager for current rank progression
+    eventManager.reset();
+    const unlockedEvents: EventType[] = [];
+    for (const rank of RANK_TABLE) {
+      if (rank.cumulativeDays > initialRankDef.cumulativeDays) break;
+      if (rank.unlocksEvent) unlockedEvents.push(rank.unlocksEvent);
+    }
+    eventManager.setUnlockedEvents(unlockedEvents);
+    eventManager.setIntensityMultiplier(Math.pow(1.5, effectiveState.loopCount));
+
+    followerManager.setupForStage(effectiveState.stageBaseDistance, effectiveState.currentDay);
     stageClearedRef.current = false;
 
     if (containerRef.current) {
@@ -202,9 +503,9 @@ export const GameScreen: React.FC = () => {
     }
 
     const update = (deltaTime: number) => {
-      // Skip physics during stage transition (overlay is shown on top)
+      // Skip physics during stage transition, promotion overlay, or cutscene
       const currentPhase = useGameStore.getState().phase;
-      if (currentPhase === 'stage-transition') {
+      if (currentPhase === 'stage-transition' || currentPhase === 'promotion' || currentPhase === 'cutscene') {
         return;
       }
 
@@ -256,23 +557,75 @@ export const GameScreen: React.FC = () => {
         // Follower stays put (no update call)
 
         // HUD still shows distance
-        updateHUD(state.distance, false);
+        updateHUD(state.distance, false, eventManager);
 
         // Sequence complete: trigger stage-transition overlay
         if (progress >= 1) {
           entering.active = false;
           physics.setZeroGravity(false);
           background.hideGoalBuilding();
+
+          // Check rank before advancing
+          const prevStageState = useStageStore.getState();
+          const rankBefore = getRankForDays(prevStageState.totalCompletedDays);
+
           advanceStageRef.current();
+
           const newStageState = useStageStore.getState();
           physics.setStageMultiplier(newStageState.difficultyMultiplier);
           followerManager.setupForStage(newStageState.stageBaseDistance, newStageState.currentDay);
-          setPhaseRef.current('stage-transition');
+
+          // Switch background theme if the world changed
+          const newTheme = getThemeForDays(newStageState.totalCompletedDays);
+          if (currentThemeRef.current !== newTheme) {
+            background.setTheme(newTheme);
+            currentThemeRef.current = newTheme;
+          }
+
+          // Check if rank changed
+          const rankAfter = getRankForDays(newStageState.totalCompletedDays);
+          character.setItem(rankAfter.item);
+
+          // Update rank-based speed multiplier and damping penalty after advancing
+          const newEffectiveSpeedMult = rankAfter.speedMultiplier * (1 + newStageState.loopCount * 0.1);
+          physics.setSpeedMultiplier(newEffectiveSpeedMult);
+          const newDampingPenalty = (rankAfter.speedMultiplier - 1.0) * 0.045;
+          physics.setRankDampingPenalty(newDampingPenalty);
+
+          // Detect world transitions — these trigger a cutscene before promotion
+          const crossedLoop = newStageState.totalCompletedDays % LOOP_CYCLE_DAYS === 0;
+          let cutsceneType: CutsceneType | null = null;
+
+          if (crossedLoop) {
+            cutsceneType = 'dream';
+          } else if (rankBefore.world !== rankAfter.world) {
+            if (rankAfter.world === 'isekai') cutsceneType = 'isekai';
+            else if (rankAfter.world === 'space') cutsceneType = 'space';
+          }
+
+          if (cutsceneType !== null) {
+            pendingCutsceneTypeRef.current = cutsceneType;
+            // Store promotion rank so we can show it after cutscene (if applicable)
+            if (rankAfter.id !== rankBefore.id && cutsceneType !== 'dream') {
+              pendingPromotionRankRef.current = rankAfter;
+            }
+            setPhaseRef.current('cutscene');
+          } else if (rankAfter.id !== rankBefore.id) {
+            pendingPromotionRankRef.current = rankAfter;
+            setPhaseRef.current('promotion');
+          } else {
+            setPhaseRef.current('stage-transition');
+          }
         }
         return;
       }
 
       const dir = directionRef.current;
+
+      // Apply event modifiers before physics update
+      const eventFrame = eventManager.update(deltaTime, physics.getState().distance);
+      physics.setEventFrame(eventFrame);
+
       physics.update(deltaTime, dir);
 
       const state = physics.getState();
@@ -291,8 +644,8 @@ export const GameScreen: React.FC = () => {
 
       followerManager.update(deltaTime, state);
 
-      // Stage clear detection: 400m per stage
-      const nextStageDist = stageBaseDistRef.current + 400;
+      // Stage clear detection: 200m per stage
+      const nextStageDist = stageBaseDistRef.current + 200;
       if (state.distance >= nextStageDist && !stageClearedRef.current && !state.isGameOver) {
         stageClearedRef.current = true;
         // Start entering-building animation instead of jumping straight to transition
@@ -310,13 +663,14 @@ export const GameScreen: React.FC = () => {
       updateHUD(
         state.distance,
         physics.isDangerous(),
+        eventManager,
       );
 
       if (state.isGameOver && !gameOverFiredRef.current) {
         gameOverFiredRef.current = true;
         const stageState = useStageStore.getState();
         setDistanceRef.current(state.distance);
-        const isNew = submitRecordRef.current(state.distance, stageState.currentDay);
+        const isNew = submitRecordRef.current(state.distance, stageState.currentDay, stageState.totalCompletedDays);
         setIsNewRecordRef.current(isNew);
         gameOverTimerRef.current = setTimeout(() => {
           gameLoopRef.current?.stop();
@@ -371,6 +725,7 @@ export const GameScreen: React.FC = () => {
       input.detach();
       if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
       if (gameOverTimerRef.current) clearTimeout(gameOverTimerRef.current);
+      if (bumpHideTimerRef.current) clearTimeout(bumpHideTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setupCanvas, updateHUD]);
@@ -379,6 +734,30 @@ export const GameScreen: React.FC = () => {
     stageClearedRef.current = false;
     setPhase('playing');
   }, [setPhase]);
+
+  const handlePromotionComplete = useCallback(() => {
+    pendingPromotionRankRef.current = null;
+    setPhase('stage-transition');
+  }, [setPhase]);
+
+  const handleCutsceneComplete = useCallback(() => {
+    const cutsceneType = pendingCutsceneTypeRef.current;
+    pendingCutsceneTypeRef.current = null;
+
+    if (cutsceneType === 'dream') {
+      // Loop reset: preserve totalCompletedDays / loopCount, restart from day 1
+      resetStage();
+      setPhase('ready');
+    } else if (pendingPromotionRankRef.current) {
+      // Show promotion screen after isekai/space cutscene
+      setPhase('promotion');
+    } else {
+      setPhase('stage-transition');
+    }
+  }, [resetStage, setPhase]);
+
+  const currentRank = getRankForDays(totalCompletedDays);
+  const rankStars = loopCount > 0 ? '★'.repeat(loopCount) : '';
 
   return (
     <div className="game-screen" ref={containerRef}>
@@ -393,6 +772,11 @@ export const GameScreen: React.FC = () => {
           <span className="distance-unit">m</span>
         </div>
         <div className="hud-best">Best: {bestDistance}m</div>
+      </div>
+
+      {/* Rank badge */}
+      <div className={`rank-badge rank-badge--${currentRank.world}`}>
+        {rankStars}{currentRank.name}
       </div>
 
       {/* Speech bubble */}
@@ -415,13 +799,40 @@ export const GameScreen: React.FC = () => {
         <span className="touch-label">RIGHT</span>
       </div>
 
+      {/* Event indicators */}
+      <div className="event-indicators">
+        <div className="event-indicator event-indicator--wind" ref={windIndicatorRef} style={{ display: 'none' }} />
+        <div className="event-indicator event-indicator--slope" ref={slopeIndicatorRef} style={{ display: 'none' }} />
+        <div className="event-indicator event-indicator--bump" ref={bumpIndicatorRef} style={{ display: 'none' }}>💥 부딪힘!</div>
+      </div>
+
       {/* Danger overlay */}
       <div className="danger-overlay" ref={dangerOverlayRef} />
+
+      {/* Cutscene overlay */}
+      {phase === 'cutscene' && pendingCutsceneTypeRef.current && (
+        <CutsceneScreen
+          type={pendingCutsceneTypeRef.current}
+          loopCount={loopCount}
+          onComplete={handleCutsceneComplete}
+        />
+      )}
+
+      {/* Promotion screen */}
+      {phase === 'promotion' && pendingPromotionRankRef.current && (
+        <PromotionScreen
+          rank={pendingPromotionRankRef.current}
+          loopCount={loopCount}
+          onComplete={handlePromotionComplete}
+        />
+      )}
 
       {/* Stage transition overlay */}
       {phase === 'stage-transition' && (
         <StageTransitionOverlay
           dayNumber={currentDay}
+          totalCompletedDays={totalCompletedDays}
+          loopCount={loopCount}
           onComplete={handleStageTransitionComplete}
         />
       )}

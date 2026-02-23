@@ -20,7 +20,7 @@ export class FollowerManager {
   ];
 
   // Day 1 fixed offsets (original appear distances relative to stage start)
-  private readonly DAY1_OFFSETS = [50, 100, 150, 200, 250, 300, 350];
+  private readonly DAY1_OFFSETS = [25, 50, 75, 100, 125, 150, 175];
 
   update(dt: number, physicsState: PhysicsState): void {
     for (const f of this.followers) f.update(dt, physicsState);
@@ -57,9 +57,9 @@ export class FollowerManager {
       const rainIndex = Math.floor(Math.random() * (others.length + 1));
       others.splice(rainIndex, 0, rain);
 
-      // Assign distances: 50, 100, 150, 200, 250, 300, 350
+      // Assign distances: 25, 50, 75, 100, 125, 150, 175
       for (let i = 0; i < others.length; i++) {
-        others[i].setAppearDistance(stageBaseDistance + (i + 1) * 50);
+        others[i].setAppearDistance(stageBaseDistance + (i + 1) * 25);
         others[i].reset();
       }
 

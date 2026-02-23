@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { getRankForDays } from '../data/rankTable';
 import './StageTransitionOverlay.css';
 
 interface Props {
   dayNumber: number;
+  totalCompletedDays: number;
+  loopCount: number;
   onComplete: () => void;
 }
 
@@ -20,8 +23,11 @@ function getDayLabel(day: number): string {
   return DAY_LABELS[day] ?? `${day}째날`;
 }
 
-export const StageTransitionOverlay: React.FC<Props> = ({ dayNumber, onComplete }) => {
+export const StageTransitionOverlay: React.FC<Props> = ({ dayNumber, totalCompletedDays, loopCount, onComplete }) => {
   const [phase, setPhase] = useState<'fadeout' | 'text' | 'fadein'>('fadeout');
+
+  const currentRank = getRankForDays(totalCompletedDays);
+  const loopStars = loopCount > 0 ? '★'.repeat(loopCount) + ' ' : '';
 
   useEffect(() => {
     // Phase 1: fadeout (0.3s)
@@ -41,7 +47,8 @@ export const StageTransitionOverlay: React.FC<Props> = ({ dayNumber, onComplete 
   return (
     <div className={`stage-transition stage-transition--${phase}`}>
       <div className="stage-transition__content">
-        <div className="stage-transition__day">출근 {getDayLabel(dayNumber)}</div>
+        <div className="stage-transition__day">{loopStars}출근 {getDayLabel(dayNumber)}</div>
+        <div className="stage-transition__rank">{currentRank.name}</div>
         <div className="stage-transition__sub">난이도 UP!</div>
       </div>
     </div>

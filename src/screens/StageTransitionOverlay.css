@@ -58,6 +58,14 @@
   margin-bottom: 8px;
 }
 
+.stage-transition__rank {
+  font-size: 18px;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
 .stage-transition__sub {
   font-size: 16px;
   font-weight: bold;

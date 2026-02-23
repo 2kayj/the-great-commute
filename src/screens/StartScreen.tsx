@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useRecordStore } from '../store/recordStore';
+import { useStageStore } from '../store/stageStore';
 import { CharacterRenderer } from '../engine/CharacterRenderer';
 import { BackgroundRenderer } from '../engine/BackgroundRenderer';
 import {
@@ -24,6 +25,7 @@ const CROP_TOTAL = CROP_ABOVE_GROUND + CROP_BELOW_GROUND; // 330px default
 export const StartScreen: React.FC = () => {
   const { setPhase }     = useGameStore();
   const { bestDistance } = useRecordStore();
+  const { loopCount }    = useStageStore();
 
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const sceneAreaRef = useRef<HTMLDivElement>(null);
@@ -144,6 +146,11 @@ export const StartScreen: React.FC = () => {
           </div>
         </div>
 
+        {loopCount > 0 && (
+          <div className="loop-indicator">
+            {'★'.repeat(loopCount)} {loopCount}회차
+          </div>
+        )}
         <button className="btn-start" onClick={() => setPhase('countdown')}>
           시작하기!
         </button>

@@ -4,6 +4,7 @@ import { useRecordStore } from '../store/recordStore';
 import { useStageStore } from '../store/stageStore';
 import { useAdStore } from '../store/adStore';
 import { AdOverlay } from './AdOverlay';
+import { getRankForDays } from '../data/rankTable';
 import './GameOverScreen.css';
 
 const DAY_LABELS: Record<number, string> = {
@@ -22,9 +23,13 @@ function getDayLabel(day: number): string {
 
 export const GameOverScreen: React.FC = () => {
   const { distance, isNewRecord, setPhase } = useGameStore();
-  const { bestDistance, bestDay } = useRecordStore();
-  const { currentDay, usedContinue, continueFromCurrentDay, resetStage } = useStageStore();
+  const { bestDistance, bestDay, bestTotalDays } = useRecordStore();
+  const { currentDay, usedContinue, continueFromCurrentDay, resetStage, totalCompletedDays, loopCount } = useStageStore();
   const { incrementPlayCount, shouldShowInterstitial } = useAdStore();
+
+  const currentRank = getRankForDays(totalCompletedDays);
+  const bestRank = getRankForDays(bestTotalDays);
+  const loopStars = loopCount > 0 ? '★'.repeat(loopCount) + ' ' : '';
   const [showingRewardedAd, setShowingRewardedAd] = useState(false);
   const [showingInterstitialAd, setShowingInterstitialAd] = useState(false);
 
@@ -105,7 +110,7 @@ export const GameOverScreen: React.FC = () => {
       {/* Bottom */}
       <div className="go-bottom">
         <div className="go-title">
-          <div className="go-headline">출근 {getDayLabel(currentDay)}에 실패했어요...</div>
+          <div className="go-headline">{loopStars}출근 {getDayLabel(currentDay)}에 실패했어요...</div>
           <div className="go-sub">다시 도전해봐요! 신입이 안오면 당신이 막내예요!</div>
         </div>
 
@@ -113,7 +118,7 @@ export const GameOverScreen: React.FC = () => {
           <div className="result-item">
             <span className="result-label">도달</span>
             <span className="result-value">
-              <span className="result-day">Day {currentDay}</span>
+              <span className="result-day">{loopStars}Day {currentDay} [{currentRank.name}]</span>
               <span className="result-distance">{current}<span className="result-unit">m</span></span>
             </span>
             {isNewRecord && <div className="new-record">NEW RECORD!</div>}
@@ -121,7 +126,7 @@ export const GameOverScreen: React.FC = () => {
           <div className="result-item">
             <span className="result-label">최고 기록</span>
             <span className="result-value">
-              <span className="result-day">Day {bestDay || 1}</span>
+              <span className="result-day">Day {bestDay || 1} [{bestRank.name}]</span>
               <span className="result-distance">{best}<span className="result-unit">m</span></span>
             </span>
           </div>

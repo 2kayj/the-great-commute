@@ -1,0 +1,589 @@
+/* ============================================================
+   CutsceneScreen — fullscreen overlay for world transitions
+   ============================================================ */
+
+.cutscene {
+  position: absolute;
+  inset: 0;
+  z-index: 120;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+}
+
+/* ============================================================
+   Shared helpers
+   ============================================================ */
+.cutscene-hint {
+  position: absolute;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 1px;
+  animation: hintPulse 1.2s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
+
+/* ============================================================
+   ISEKAI CUTSCENE
+   ============================================================ */
+.cutscene--isekai {
+  background: #1a1a2e;
+}
+
+/* Phase backgrounds */
+.cutscene--isekai.phase-3,
+.cutscene--isekai.phase-4 {
+  /* handled by inner divs */
+}
+
+/* Walking scene backdrop */
+.isekai-scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: linear-gradient(180deg, #0d0d1a 0%, #1a1a2e 60%, #2a2a1a 100%);
+}
+
+/* Ground line */
+.isekai-ground {
+  position: absolute;
+  bottom: 120px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #333;
+}
+
+/* Stick-figure character walking */
+.isekai-character {
+  position: absolute;
+  bottom: 123px;
+  left: 50%;
+  transform: translateX(-120px);
+  width: 30px;
+  height: 70px;
+}
+
+.isekai-character .stick-head {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid #ddd;
+  background: transparent;
+}
+
+.isekai-character .stick-body {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 26px;
+  background: #ddd;
+}
+
+.isekai-character .stick-leg-l,
+.isekai-character .stick-leg-r {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  height: 22px;
+  background: #ddd;
+  transform-origin: top center;
+}
+
+.isekai-character .stick-leg-l { animation: legSwingL 0.5s ease-in-out infinite; }
+.isekai-character .stick-leg-r { animation: legSwingR 0.5s ease-in-out infinite; }
+
+.isekai-character .stick-arm-l,
+.isekai-character .stick-arm-r {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  width: 3px;
+  height: 18px;
+  background: #ddd;
+  transform-origin: top center;
+}
+
+.isekai-character .stick-arm-l { animation: armSwingL 0.5s ease-in-out infinite; }
+.isekai-character .stick-arm-r { animation: armSwingR 0.5s ease-in-out infinite; }
+
+@keyframes legSwingL {
+  0%, 100% { transform: rotate(-25deg); }
+  50%       { transform: rotate(25deg); }
+}
+@keyframes legSwingR {
+  0%, 100% { transform: rotate(25deg); }
+  50%       { transform: rotate(-25deg); }
+}
+@keyframes armSwingL {
+  0%, 100% { transform: rotate(30deg); }
+  50%       { transform: rotate(-30deg); }
+}
+@keyframes armSwingR {
+  0%, 100% { transform: rotate(-30deg); }
+  50%       { transform: rotate(30deg); }
+}
+
+/* Truck sliding in */
+.isekai-truck {
+  position: absolute;
+  bottom: 100px;
+  right: -200px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  animation: truckSlideIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.truck-body {
+  width: 160px;
+  height: 80px;
+  background: #e74c3c;
+  border: 4px solid #222;
+  border-radius: 6px 6px 0 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.truck-body::before {
+  content: '부릉!';
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 2px solid #222;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 15px;
+  font-weight: bold;
+  color: #222;
+  white-space: nowrap;
+}
+
+.truck-cab {
+  position: absolute;
+  left: -48px;
+  bottom: 0;
+  width: 50px;
+  height: 56px;
+  background: #c0392b;
+  border: 4px solid #222;
+  border-right: none;
+  border-radius: 6px 0 0 0;
+}
+
+.truck-cab::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 6px;
+  width: 30px;
+  height: 20px;
+  background: #88ccff;
+  border: 2px solid #222;
+  border-radius: 2px;
+}
+
+.truck-wheels {
+  width: 168px;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+  margin-top: -4px;
+  position: relative;
+  left: 0;
+}
+
+.truck-wheel {
+  width: 28px;
+  height: 28px;
+  background: #222;
+  border-radius: 50%;
+  border: 4px solid #555;
+  position: relative;
+}
+
+.truck-wheel::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: #888;
+}
+
+@keyframes truckSlideIn {
+  from { right: -250px; }
+  to   { right: 40px; }
+}
+
+/* White flash overlay */
+.isekai-flash {
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  animation: flashIn 0.6s ease-in forwards;
+}
+
+@keyframes flashIn {
+  0%   { opacity: 0; }
+  50%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+/* Isekai final screen */
+.isekai-final {
+  position: absolute;
+  inset: 0;
+  background: #6c3483;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.isekai-final-text {
+  font-size: 28px;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+  animation: textReveal 0.6s ease-out 0.2s both;
+  line-height: 1.5;
+  padding: 0 24px;
+}
+
+/* ============================================================
+   SPACE CUTSCENE
+   ============================================================ */
+.cutscene--space {
+  background: #000;
+}
+
+.space-scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Sky gradient that transitions from blue to black */
+.space-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #000005 0%, #0a0a2e 30%, #1a3a6e 65%, #87CEEB 100%);
+  transition: opacity 1s ease;
+}
+
+/* Stars */
+.space-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.space-star {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  animation: starTwinkle var(--twinkle-dur, 2s) ease-in-out infinite;
+  animation-delay: var(--twinkle-delay, 0s);
+}
+
+@keyframes starTwinkle {
+  0%, 100% { opacity: var(--star-opacity, 0.8); }
+  50%       { opacity: 0.2; }
+}
+
+/* Ascending character */
+.space-character {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 70px;
+  animation: ascend 2s ease-in forwards;
+}
+
+@keyframes ascend {
+  0%   { bottom: 100px; opacity: 1; }
+  80%  { opacity: 1; }
+  100% { bottom: 110%; opacity: 0; }
+}
+
+.space-character .stick-head {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+}
+
+.space-character .stick-body {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 26px;
+  background: #fff;
+}
+
+.space-character .stick-arm-l,
+.space-character .stick-arm-r {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  width: 3px;
+  height: 18px;
+  background: #fff;
+  transform-origin: top center;
+}
+
+.space-character .stick-arm-l { transform: rotate(-60deg); }
+.space-character .stick-arm-r { transform: rotate(60deg); }
+
+.space-character .stick-leg-l,
+.space-character .stick-leg-r {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  height: 22px;
+  background: #fff;
+  transform-origin: top center;
+}
+
+.space-character .stick-leg-l { transform: rotate(-20deg); }
+.space-character .stick-leg-r { transform: rotate(20deg); }
+
+/* Ground line */
+.space-ground {
+  position: absolute;
+  bottom: 100px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Space text reveal */
+.space-text-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.space-text-line1 {
+  font-size: 32px;
+  font-weight: bold;
+  color: #fff;
+  letter-spacing: 3px;
+  text-align: center;
+  text-shadow: 0 0 20px rgba(135, 206, 235, 0.8);
+  animation: textReveal 0.6s ease-out 0.1s both;
+}
+
+.space-text-line2 {
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 2px;
+  text-align: center;
+  text-shadow: 0 0 15px rgba(135, 206, 235, 0.6);
+  animation: textReveal 0.6s ease-out 0.5s both;
+}
+
+/* ============================================================
+   DREAM CUTSCENE
+   ============================================================ */
+.cutscene--dream {
+  background: #fff;
+}
+
+/* Blur overlay captures the whole game scene beneath */
+.dream-blur-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.05);
+  animation: dreamBlur 1.5s ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes dreamBlur {
+  0%   { backdrop-filter: blur(0px); background: rgba(255,255,255,0); }
+  100% { backdrop-filter: blur(12px); background: rgba(255,255,255,0.4); }
+}
+
+/* Alarm clock phase */
+.dream-alarm {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* CSS alarm clock drawing */
+.alarm-clock {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  animation: alarmShake 0.15s ease-in-out infinite;
+}
+
+.clock-body {
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  background: #fff;
+  border: 5px solid #222;
+}
+
+.clock-body::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 20px;
+  background: #222;
+  transform: translate(-50%, -100%);
+  transform-origin: bottom center;
+}
+
+.clock-body::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 14px;
+  background: #222;
+  transform: translate(-50%, -100%) rotate(60deg);
+  transform-origin: bottom center;
+}
+
+.clock-bell-l,
+.clock-bell-r {
+  position: absolute;
+  top: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 5px solid #222;
+}
+
+.clock-bell-l { left: -4px; }
+.clock-bell-r { right: -4px; }
+
+.clock-feet {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 24px;
+}
+
+.clock-foot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #222;
+}
+
+@keyframes alarmShake {
+  0%   { transform: rotate(-8deg) translateX(-2px); }
+  50%  { transform: rotate(8deg) translateX(2px); }
+  100% { transform: rotate(-8deg) translateX(-2px); }
+}
+
+.alarm-text {
+  font-size: 28px;
+  font-weight: bold;
+  color: #222;
+  letter-spacing: 2px;
+  animation: alarmShake 0.15s ease-in-out infinite;
+}
+
+/* Dream text screens */
+.dream-text-screen {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.dream-text-line1 {
+  font-size: 36px;
+  font-weight: bold;
+  color: #444;
+  letter-spacing: 3px;
+  animation: textReveal 0.5s ease-out 0.1s both;
+}
+
+.dream-text-line2 {
+  font-size: 22px;
+  color: #888;
+  letter-spacing: 2px;
+  animation: textReveal 0.5s ease-out 0.5s both;
+}
+
+/* ============================================================
+   Shared keyframes
+   ============================================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes textReveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

@@ -4,16 +4,21 @@ import { StartScreen } from './screens/StartScreen';
 import { CountdownScreen } from './screens/CountdownScreen';
 import { GameScreen } from './screens/GameScreen';
 import { GameOverScreen } from './screens/GameOverScreen';
+import AssetPreview from './pages/AssetPreview';
 import './App.css';
 
 const DESIGN_W = 390;
 const DESIGN_H = 844;
+
+// Show asset preview when URL contains ?preview
+const isPreviewMode = new URLSearchParams(window.location.search).has('preview');
 
 const App: React.FC = () => {
   const { phase } = useGameStore();
   const gameContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (isPreviewMode) return;
     const applyLayout = () => {
       const el = gameContainerRef.current;
       if (!el) return;
@@ -48,12 +53,16 @@ const App: React.FC = () => {
     };
   }, []);
 
+  if (isPreviewMode) {
+    return <AssetPreview />;
+  }
+
   return (
     <div className="app-wrapper">
       <div className="game-container" ref={gameContainerRef}>
         {phase === 'ready'     && <StartScreen />}
         {phase === 'countdown' && <CountdownScreen />}
-        {(phase === 'playing' || phase === 'stage-transition') && <GameScreen />}
+        {(phase === 'playing' || phase === 'stage-transition' || phase === 'promotion' || phase === 'cutscene') && <GameScreen />}
         {phase === 'over'      && <GameOverScreen />}
       </div>
     </div>

@@ -1,5 +1,14 @@
 import type { InputState } from '../types/game.types';
 
+const KEY_DIRECTION_MAP: Record<string, -1 | 1> = {
+  ArrowLeft: -1,
+  a: -1,
+  A: -1,
+  ArrowRight: 1,
+  d: 1,
+  D: 1,
+};
+
 export class InputManager {
   private state: InputState = { direction: 0, isPressed: false };
   private element: HTMLElement | null = null;
@@ -21,6 +30,20 @@ export class InputManager {
 
   private handlePointerUp = (e: PointerEvent): void => {
     e.preventDefault();
+    this.state = { direction: 0, isPressed: false };
+    this.onInputChange?.(this.state);
+  };
+
+  private handleKeyDown = (e: KeyboardEvent): void => {
+    const direction = KEY_DIRECTION_MAP[e.key];
+    if (direction === undefined) return;
+    if (direction === this.state.direction) return;
+    this.state = { direction, isPressed: true };
+    this.onInputChange?.(this.state);
+  };
+
+  private handleKeyUp = (e: KeyboardEvent): void => {
+    if (!(e.key in KEY_DIRECTION_MAP)) return;
     this.state = { direction: 0, isPressed: false };
     this.onInputChange?.(this.state);
   };
@@ -49,6 +72,8 @@ export class InputManager {
     element.addEventListener('pointerup', this.handlePointerUp);
     element.addEventListener('pointercancel', this.handlePointerUp);
     element.addEventListener('pointermove', this.handlePointerMove);
+    window.addEventListener('keydown', this.handleKeyDown);
+    window.addEventListener('keyup', this.handleKeyUp);
   }
 
   detach(): void {
@@ -57,6 +82,8 @@ export class InputManager {
     this.element.removeEventListener('pointerup', this.handlePointerUp);
     this.element.removeEventListener('pointercancel', this.handlePointerUp);
     this.element.removeEventListener('pointermove', this.handlePointerMove);
+    window.removeEventListener('keydown', this.handleKeyDown);
+    window.removeEventListener('keyup', this.handleKeyUp);
     this.element = null;
     this.onInputChange = undefined;
   }
