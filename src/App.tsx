@@ -19,8 +19,11 @@ const App: React.FC = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    platform.initAds();
-    platform.restorePendingPurchases();
+    // 토스 플랫폼은 동적 로드 후 자동 초기화됨 (platform/index.ts)
+    if (platform.PLATFORM !== 'toss') {
+      platform.initAds();
+      platform.restorePendingPurchases();
+    }
   }, []);
 
   useEffect(() => {
