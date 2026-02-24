@@ -5,6 +5,7 @@ import { CountdownScreen } from './screens/CountdownScreen';
 import { GameScreen } from './screens/GameScreen';
 import { GameOverScreen } from './screens/GameOverScreen';
 import AssetPreview from './pages/AssetPreview';
+import platform from './platform';
 import './App.css';
 
 const DESIGN_W = 390;
@@ -16,6 +17,11 @@ const isPreviewMode = new URLSearchParams(window.location.search).has('preview')
 const App: React.FC = () => {
   const { phase } = useGameStore();
   const gameContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    platform.initAds();
+    platform.restorePendingPurchases();
+  }, []);
 
   useEffect(() => {
     if (isPreviewMode) return;

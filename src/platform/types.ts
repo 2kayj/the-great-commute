@@ -7,6 +7,8 @@ export type PlatformType = 'toss' | 'store';
 export interface PlatformAdapter {
   PLATFORM: PlatformType;
   initAds: () => void;
-  purchaseCoffee: () => Promise<boolean>;
   showRewardedAd: () => Promise<boolean>;
+  showInterstitialAd: () => Promise<boolean>;
+  purchaseCoffee: () => Promise<boolean>;
+  restorePendingPurchases: () => Promise<void>;
 }

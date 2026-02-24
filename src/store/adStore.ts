@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import platform from '../platform';
 
 interface AdStore {
   totalPlayCount: number;
@@ -7,30 +8,24 @@ interface AdStore {
   incrementPlayCount: () => void;
 }
 
-// Placeholder functions for actual ad SDK integration
+// 플랫폼 어댑터를 통한 광고 호출
 export const showInterstitialAd = (): Promise<boolean> => {
-  console.log('[Ad] Interstitial ad placeholder');
-  return Promise.resolve(true);
+  return platform.showInterstitialAd();
 };
 
 export const showRewardedAd = (): Promise<boolean> => {
-  console.log('[Ad] Rewarded ad placeholder');
-  return Promise.resolve(true);
+  return platform.showRewardedAd();
 };
 
 export const useAdStore = create<AdStore>()(
   persist(
     (set, get) => ({
       totalPlayCount: 0,
-
       shouldShowInterstitial: () => get().totalPlayCount >= 3,
-
       incrementPlayCount: () => set((state) => ({
         totalPlayCount: state.totalPlayCount + 1,
       })),
     }),
-    {
-      name: 'office-walk-ads',
-    }
+    { name: 'office-walk-ads' }
   )
 );

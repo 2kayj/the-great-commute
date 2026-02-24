@@ -24,3 +24,14 @@ export function showRewardedAd(): Promise<boolean> {
   console.log('[store] AdMob 리워드 광고 표시');
   return Promise.resolve(false);
 }
+
+// TODO: 전면 광고 (AdMob)
+export function showInterstitialAd(): Promise<boolean> {
+  console.log('[store] AdMob 전면 광고 표시');
+  return Promise.resolve(false);
+}
+
+// TODO: IAP 미지급 주문 복원
+export async function restorePendingPurchases(): Promise<void> {
+  console.log('[store] IAP 미지급 복원');
+}

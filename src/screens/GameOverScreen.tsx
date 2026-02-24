@@ -6,6 +6,7 @@ import { useAdStore } from '../store/adStore';
 import { AdOverlay } from './AdOverlay';
 import { getRankForDays } from '../data/rankTable';
 import type { WorldPhase } from '../types/rank.types';
+import platform from '../platform';
 import './GameOverScreen.css';
 
 const WORLD_GAMEOVER_MESSAGES: Record<WorldPhase, {
@@ -81,8 +82,18 @@ export const GameOverScreen: React.FC = () => {
   const best    = bestDistance;
   const diff    = best - current;
 
-  const handleContinue = () => {
-    setShowingRewardedAd(true);
+  const handleContinue = async () => {
+    if (platform.PLATFORM === 'toss') {
+      // 토스: 네이티브 SDK 광고 직접 호출
+      const success = await platform.showRewardedAd();
+      if (success) {
+        continueFromCurrentDay(distance);
+        setPhase('playing');
+      }
+    } else {
+      // 데모/스토어: 기존 AdOverlay 사용
+      setShowingRewardedAd(true);
+    }
   };
 
   const handleRewardedAdComplete = (success: boolean) => {
@@ -93,7 +104,15 @@ export const GameOverScreen: React.FC = () => {
     }
   };
 
-  const handleRetry = () => {
+  const handleRetry = async () => {
+    if (platform.PLATFORM === 'toss') {
+      // 3회 이상 플레이 시 전면 광고
+      const adStore = useAdStore.getState();
+      adStore.incrementPlayCount();
+      if (adStore.shouldShowInterstitial()) {
+        await platform.showInterstitialAd();
+      }
+    }
     resetStage();
     setPhase('countdown');
   };
