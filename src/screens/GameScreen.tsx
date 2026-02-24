@@ -271,13 +271,11 @@ export const GameScreen: React.FC = () => {
   bestDistRef.current = bestDistance;
 
   // Item store
-  const { coffeeCount, resetRunFlags, consumeCoffee } = useItemStore();
+  const { coffeeCount, consumeCoffee } = useItemStore();
   const coffeeCountRef    = useRef(coffeeCount);
   coffeeCountRef.current  = coffeeCount;
   const consumeCoffeeRef  = useRef(consumeCoffee);
   consumeCoffeeRef.current = consumeCoffee;
-  const resetRunFlagsRef  = useRef(resetRunFlags);
-  resetRunFlagsRef.current = resetRunFlags;
 
   // Stage store
   const { currentDay, stageBaseDistance, difficultyMultiplier, advanceStage, resetStage, totalCompletedDays, loopCount } = useStageStore();
@@ -489,8 +487,6 @@ export const GameScreen: React.FC = () => {
     followerManager.reset();
     gameOverFiredRef.current = false;
 
-    // 판 시작 시 커피 사용 플래그 초기화
-    resetRunFlagsRef.current();
 
     // Apply theme for the current stage
     const initialTheme = getThemeForDays(useStageStore.getState().totalCompletedDays);
@@ -695,12 +691,11 @@ export const GameScreen: React.FC = () => {
       const eventFrame = eventManager.update(deltaTime, physics.getState().distance);
       physics.setEventFrame(eventFrame);
 
-      // Coffee auto-activation: 위험 상태 + 커피 보유 + 미사용 시 자동 발동
+      // Coffee auto-activation: 위험 상태 + 쉴드 미활성 + 커피 보유 시 자동 발동
       if (
         physics.isDangerous() &&
         !physics.isCoffeeShieldActive() &&
-        coffeeCountRef.current > 0 &&
-        !useItemStore.getState().coffeeUsedThisRun
+        coffeeCountRef.current > 0
       ) {
         const consumed = consumeCoffeeRef.current();
         if (consumed) {

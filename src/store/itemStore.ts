@@ -3,17 +3,14 @@ import { persist } from 'zustand/middleware';
 
 interface ItemStore {
   coffeeCount: number;
-  coffeeUsedThisRun: boolean;
   addCoffee: (amount: number) => void;
   consumeCoffee: () => boolean;
-  resetRunFlags: () => void;
 }
 
 export const useItemStore = create<ItemStore>()(
   persist(
     (set, get) => ({
-      coffeeCount: 3, // 테스트용 초기값 (배포 시 0으로 변경)
-      coffeeUsedThisRun: false,
+      coffeeCount: 3, // 첫 시작 시 3잔 지급 (persist로 이후 유지)
 
       addCoffee: (amount: number) => set((state) => ({
         coffeeCount: state.coffeeCount + amount,
@@ -21,12 +18,10 @@ export const useItemStore = create<ItemStore>()(
 
       consumeCoffee: () => {
         const state = get();
-        if (state.coffeeCount <= 0 || state.coffeeUsedThisRun) return false;
-        set({ coffeeCount: state.coffeeCount - 1, coffeeUsedThisRun: true });
+        if (state.coffeeCount <= 0) return false;
+        set({ coffeeCount: state.coffeeCount - 1 });
         return true;
       },
-
-      resetRunFlags: () => set({ coffeeUsedThisRun: false }),
     }),
     { name: 'item-store' },
   ),
