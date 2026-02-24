@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>팔로워 비주얼 프리뷰</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      min-height: 100vh;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      color: #fff;
+    }
+    h1 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+      color: #ccc;
+    }
+    p.subtitle {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+    canvas {
+      display: block;
+      border: 1px solid #222;
+    }
+  </style>
+</head>
+<body>
+  <h1>팔로워 비주얼 프리뷰</h1>
+  <p class="subtitle">3행 7열 · 이세계/우주 월드 신규 팔로워 확인용</p>
+  <canvas id="canvas"></canvas>
+
+<script>
+// ============================================================
+//  레이아웃 상수
+// ============================================================
+const COLS = 7;
+const ROWS = 3;
+const CELL_W = 140;
+const CELL_H = 150;
+const PADDING = 20;
+
+const CANVAS_W = COLS * CELL_W + PADDING * 2;
+const CANVAS_H = ROWS * CELL_H + PADDING * 2 + 40; // 40 = 행 라벨 공간
+
+const canvas = document.getElementById('canvas');
+canvas.width = CANVAS_W;
+canvas.height = CANVAS_H;
+const ctx = canvas.getContext('2d');
+
+// ============================================================
+//  타임라인
+// ============================================================
+let startTime = null;
+
+// ============================================================
+//  팔로워 정의 메타 데이터
+// ============================================================
+const ROW_LABELS = ['회사 / 정치', '이세계', '우주'];
+const FOLLOWERS = [
+  // Row 0 - 현재 월드
+  { name: '강아지',      draw: drawDog },
+  { name: '나비',        draw: drawButterfly },
+  { name: '비',          draw: drawRain },
+  { name: '고양이',      draw: drawCat },
+  { name: '참새',        draw: drawSparrow },
+  { name: '거북이',      draw: drawTurtle },
+  { name: '반딧불이',    draw: drawFirefly },
+  // Row 1 - 이세계
+  { name: '슬라임',      draw: drawSlime },
+  { name: '꼬마 정령',   draw: drawSpirit },
+  { name: '마나 가루',   draw: drawManaDust },
+  { name: '미믹 상자',   draw: drawMimic },
+  { name: '박쥐',        draw: drawBat },
+  { name: '골렘 조각',   draw: drawGolem },
+  { name: '도깨비불',    draw: drawWillOWisp },
+  // Row 2 - 우주
+  { name: '탐사 로봇',   draw: drawExploreBot },
+  { name: '소형 드론',   draw: drawDrone },
+  { name: '유성 파편',   draw: drawMeteor },
+  { name: '외계 고양이', draw: drawAlienCat },
+  { name: '소형 UFO',    draw: drawUFO },
+  { name: '화물 컨테이너', draw: drawCargoCrate },
+  { name: '부유 신호등', draw: drawFloatingLight },
+];
+
+// ============================================================
+//  퍼시스턴트 애니메이션 상태 (각 팔로워 별 독립 상태)
+// ============================================================
+const states = FOLLOWERS.map(() => ({}));
+
+// 초기화 - 무작위 파티클 등 상태 셋업
+function initStates() {
+  // 반딧불이 (index 6)
+  const ffState = states[6];
+  ffState.flies = Array.from({ length: 5 }, (_, i) => ({
+    orbitRadius: 30 + Math.random() * 20,
+    orbitPhase: (i / 5) * Math.PI * 2,
+    orbitSpeed: 0.2 + Math.random() * 0.1,
+    ampX: 8 + Math.random() * 8,
+    ampY: 6 + Math.random() * 6,
+    freqX: 0.8 + Math.random() * 0.8,
+    freqY: 1.1 + Math.random() * 0.8,
+    lissPhase: Math.random() * Math.PI * 2,
+    blinkOffset: Math.random() * Math.PI * 2,
+    blinkSpeed: 0.35 + Math.random() * 0.2,
+    radius: 2 + Math.random(),
+  }));
+
+  // 마나 가루 (index 9)
+  const mdState = states[9];
+  mdState.particles = Array.from({ length: 10 }, () => ({
+    x: (Math.random() - 0.5) * 50,
+    y: (Math.random() - 0.5) * 60,
+    vy: 8 + Math.random() * 8,
+    phase: Math.random() * Math.PI * 2,
+  }));
+
+  // 유성 파편 (index 16)
+  const mtState = states[16];
+  mtState.rocks = Array.from({ length: 6 }, () => ({
+    x: (Math.random() - 0.5) * 60,
+    y: (Math.random() - 0.5) * 60,
+    vx: 20 + Math.random() * 15,
+    vy: 25 + Math.random() * 20,
+    r: 2 + Math.random() * 3,
+  }));
+
+  // 도깨비불 (index 13)
+  const wpState = states[13];
+  wpState.fires = Array.from({ length: 4 }, (_, i) => ({
+    orbitPhase: (i / 4) * Math.PI * 2,
+    lissPhase: Math.random() * Math.PI * 2,
+    blinkOffset: Math.random() * Math.PI * 2,
+    blinkSpeed: 0.4 + Math.random() * 0.3,
+    radius: 2.5 + Math.random() * 1,
+  }));
+}
+
+// ============================================================
+//  그리기 헬퍼
+// ============================================================
+function setStroke(color = '#222222', width = 1.5) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+}
+
+function setFill(color = '#FFFFFF') {
+  ctx.fillStyle = color;
+}
+
+// ============================================================
+//  1행 - 현재 월드 팔로워
+// ============================================================
+
+// --- 강아지 ---
+function drawDog(cx, cy, t) {
+  const gY = cy + 45; // ground Y (발 위치)
+  const walkPhase = t * 2.5;
+  const bodyBob = Math.abs(Math.sin(walkPhase)) * -2;
+  const bx = cx;
+  const by = gY + bodyBob;
+
+  ctx.save();
+
+  // 꼬리
+  const tailSway = Math.sin(t * 3) * 5;
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(bx - 18, by - 8);
+  ctx.quadraticCurveTo(bx - 28 + tailSway, by - 22, bx - 22 + tailSway, by - 30);
+  ctx.stroke();
+  ctx.strokeStyle = '#222222';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(bx - 18, by - 8);
+  ctx.quadraticCurveTo(bx - 28 + tailSway, by - 22, bx - 22 + tailSway, by - 30);
+  ctx.stroke();
+
+  // 다리
+  ctx.strokeStyle = '#222222';
+  ctx.lineWidth = 2;
+  const legPairs = [
+    { hx: bx + 10, phase: walkPhase },
+    { hx: bx - 10, phase: walkPhase + Math.PI },
+  ];
+  for (const lp of legPairs) {
+    const swing = Math.sin(lp.phase) * 4;
+    const kx = lp.hx + swing * 0.5;
+    const ky = by - 4 + 6;
+    const fx = kx + swing;
+    const fy = ky + 6;
+    ctx.beginPath();
+    ctx.moveTo(lp.hx, by - 4);
+    ctx.lineTo(kx, ky);
+    ctx.lineTo(fx, fy);
+    ctx.stroke();
+  }
+
+  // 몸통
+  ctx.fillStyle = '#FFFFFF';
+  ctx.strokeStyle = '#222222';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.ellipse(bx, by - 10, 18, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 머리
+  const hx = bx + 14, hy = by - 18, hr = 10;
+  ctx.fillStyle = '#FFFFFF';
+  // 귀 왼
+  ctx.beginPath();
+  ctx.moveTo(hx - 7, hy - 2);
+  ctx.lineTo(hx - 10, hy - hr - 2);
+  ctx.lineTo(hx - 3, hy - 2);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 귀 오른
+  ctx.beginPath();
+  ctx.moveTo(hx - 1, hy - 2);
+  ctx.lineTo(hx + 3, hy - hr - 2);
+  ctx.lineTo(hx + 6, hy - 2);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 머리
+  ctx.beginPath();
+  ctx.arc(hx, hy, hr, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  // 주둥이
+  ctx.beginPath();
+  ctx.moveTo(hx + 7, hy - 2);
+  ctx.bezierCurveTo(hx + 14, hy - 3, hx + 14, hy + 4, hx + 7, hy + 4);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 눈
+  ctx.fillStyle = '#222222';
+  ctx.beginPath(); ctx.arc(hx + 2, hy - 3, 1.5, 0, Math.PI * 2); ctx.fill();
+  // 코
+  ctx.beginPath(); ctx.arc(hx + 13, hy + 1, 2, 0, Math.PI * 2); ctx.fill();
+
+  ctx.restore();
+}
+
+// --- 나비 ---
+function drawButterfly(cx, cy, t) {
+  const bx = cx + Math.sin(t * 1.2) * 20;
+  const by = cy - 20 + Math.sin(t * 1.7) * 15;
+  const flapScale = Math.abs(Math.sin(t * 10));
+
+  ctx.save();
+  ctx.translate(bx, by);
+
+  const uW = 16 * flapScale, uH = 13;
+  const lW = 11 * flapScale, lH = 9;
+  const wc = '#FFD700', wo = '#FF8C00';
+
+  // 날개 4장
+  for (let side = -1; side <= 1; side += 2) {
+    ctx.fillStyle = wc; ctx.strokeStyle = wo; ctx.lineWidth = 1.5;
+    // 위 날개
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(side * uW * 0.3, -uH * 0.5, side * uW, -uH, side * uW, -uH * 0.3);
+    ctx.bezierCurveTo(side * uW, uH * 0.1, side * uW * 0.3, uH * 0.3, 0, 0);
+    ctx.fill(); ctx.stroke();
+    // 아래 날개
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(side * lW * 0.3, lH * 0.3, side * lW, lH, side * lW * 0.8, lH * 0.5);
+    ctx.bezierCurveTo(side * lW * 0.5, lH * 0.1, side * lW * 0.2, lH * 0.1, 0, 0);
+    ctx.fill(); ctx.stroke();
+  }
+
+  // 몸통
+  ctx.fillStyle = '#222222';
+  ctx.beginPath(); ctx.ellipse(0, 0, 2, 7, 0, 0, Math.PI * 2); ctx.fill();
+
+  // 더듬이
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-1, -6); ctx.quadraticCurveTo(-6, -14, -8, -18); ctx.stroke();
+  ctx.beginPath(); ctx.arc(-8, -18, 1.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#222222'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(1, -6); ctx.quadraticCurveTo(6, -14, 8, -18); ctx.stroke();
+  ctx.beginPath(); ctx.arc(8, -18, 1.5, 0, Math.PI * 2); ctx.fill();
+
+  ctx.restore();
+}
+
+// --- 비 ---
+function drawRain(cx, cy, t) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(cx - 55, cy - 55, 110, 105);
+  ctx.clip();
+
+  for (let i = 0; i < 20; i++) {
+    const seed = i * 137.508;
+    const baseX = cx - 50 + (seed % 110);
+    const baseY = cy - 55 + ((seed * 7 + t * 150) % 110);
+    const len = 4 + (i % 3) * 2;
+    const alpha = 0.4 + (i % 3) * 0.15;
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = '#9BB5CE';
+    ctx.lineWidth = 1.2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(baseX, baseY);
+    ctx.lineTo(baseX + 0.3 * len, baseY + len);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // 지면 웅덩이 물결
+  const rippleT = (t * 0.8) % 1;
+  ctx.save();
+  ctx.globalAlpha = 0.4 * (1 - rippleT);
+  ctx.strokeStyle = '#9BB5CE';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 45, rippleT * 18, rippleT * 5, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// --- 고양이 ---
+function drawCat(cx, cy, t) {
+  const gY = cy + 45;
+  const tailPhase = t * 1.2;
+  const x = cx, y = gY;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(0.9, 0.9);
+  ctx.strokeStyle = '#222222';
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // 꼬리
+  const sw = Math.sin(tailPhase) * 3;
+  ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-8, -12);
+  ctx.bezierCurveTo(-22 + sw, -28, -18 + sw, -48, -6 + sw, -52);
+  ctx.stroke();
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-8, -12);
+  ctx.bezierCurveTo(-22 + sw, -28, -18 + sw, -48, -6 + sw, -52);
+  ctx.stroke();
+
+  // 몸통
+  ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(0, -10, 11, 14, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+  // 앞발
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  for (const px of [4, 9]) {
+    ctx.beginPath(); ctx.moveTo(px, -2); ctx.lineTo(px, 4); ctx.stroke();
+    ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(px, 5, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+
+  // 머리
+  const hx = 5, hy = -36, hr = 12;
+  ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  // 귀 왼
+  ctx.beginPath();
+  ctx.moveTo(hx - 8, hy - 2); ctx.lineTo(hx - 12, hy - hr - 6); ctx.lineTo(hx - 2, hy - 4);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 귀 오른
+  ctx.beginPath();
+  ctx.moveTo(hx + 2, hy - 4); ctx.lineTo(hx + 8, hy - hr - 6); ctx.lineTo(hx + 12, hy - 2);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 머리
+  ctx.beginPath(); ctx.arc(hx, hy, hr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // 주둥이
+  ctx.beginPath();
+  ctx.moveTo(hx + 8, hy - 1);
+  ctx.bezierCurveTo(hx + 15, hy - 2, hx + 15, hy + 5, hx + 8, hy + 5);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 눈
+  ctx.fillStyle = '#222222';
+  ctx.beginPath(); ctx.arc(hx + 3, hy - 3, 1.5, 0, Math.PI * 2); ctx.fill();
+  // 코
+  ctx.beginPath(); ctx.arc(hx + 13, hy + 2, 1.5, 0, Math.PI * 2); ctx.fill();
+  // 수염
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(hx + 11, hy + 1); ctx.lineTo(hx + 20, hy - 1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(hx + 11, hy + 3); ctx.lineTo(hx + 20, hy + 4); ctx.stroke();
+
+  ctx.restore();
+}
+
+// --- 참새 (3마리 편대) ---
+function drawSparrow(cx, cy, t) {
+  const configs = [
+    { ox: 0,   oy: -35, ps: 0,              fs: 0 },
+    { ox: -18, oy: -22, ps: Math.PI * 0.4,  fs: Math.PI * 0.5 },
+    { ox: 18,  oy: -22, ps: Math.PI * 0.8,  fs: Math.PI * 1.1 },
+  ];
+  ctx.save();
+  ctx.globalAlpha = 1;
+
+  for (const c of configs) {
+    const bx = cx + c.ox;
+    const by = cy + c.oy + Math.sin(t * 1.8 + c.ps) * 4;
+    const flapT = Math.abs(Math.sin(t * 9 + c.fs));
+    const wingY = -flapT * 7;
+
+    ctx.save();
+    ctx.translate(bx, by);
+
+    // 날개
+    ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(s, 1);
+      ctx.quadraticCurveTo(s * 3.6, wingY * 0.5, s * 6, wingY);
+      ctx.quadraticCurveTo(s * 4.8, wingY + 3, s, 3);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+
+    // 몸통
+    ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(0, 2, 5, 3, -0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+    // 머리
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath(); ctx.arc(4, -1, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#222222';
+    ctx.beginPath(); ctx.arc(5.5, -1.5, 0.8, 0, Math.PI * 2); ctx.fill();
+    // 부리
+    ctx.fillStyle = '#222222';
+    ctx.beginPath();
+    ctx.moveTo(6.5, -1); ctx.lineTo(9.5, -0.5); ctx.lineTo(6.5, 0.5);
+    ctx.closePath(); ctx.fill();
+
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// --- 거북이 ---
+function drawTurtle(cx, cy, t) {
+  const gY = cy + 45;
+  const walkPhase = t * 2;
+  const bodyBob = Math.abs(Math.sin(walkPhase)) * -1.2;
+  const bx = cx, by = gY + bodyBob;
+
+  ctx.save();
+
+  // 다리 4개
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+  const legs = [
+    { bx: bx + 9,  phase: walkPhase,           side: 1  },
+    { bx: bx - 9,  phase: walkPhase + Math.PI, side: 1  },
+    { bx: bx + 7,  phase: walkPhase + Math.PI, side: -1 },
+    { bx: bx - 7,  phase: walkPhase,           side: -1 },
+  ];
+  for (const leg of legs) {
+    const sw = Math.sin(leg.phase) * 3;
+    const kx = leg.bx + leg.side * 6 + sw * 0.3;
+    const ky = by - 4 + 4;
+    ctx.beginPath();
+    ctx.moveTo(leg.bx, by - 4);
+    ctx.lineTo(kx, ky);
+    ctx.lineTo(kx + sw * 0.6, by);
+    ctx.stroke();
+  }
+
+  // 꼬리
+  ctx.beginPath();
+  ctx.moveTo(bx - 12, by - 6); ctx.lineTo(bx - 18, by - 4);
+  ctx.stroke();
+
+  // 등껍데기
+  ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(bx, by - 9, 13, 9, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+  // 껍데기 패턴
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(bx, by - 9, 12, 8, 0, 0, Math.PI * 2); ctx.clip();
+  const hc = [
+    {x: bx, y: by - 11}, {x: bx + 7, y: by - 11}, {x: bx - 7, y: by - 11},
+    {x: bx + 3.5, y: by - 14.5}, {x: bx - 3.5, y: by - 14.5},
+    {x: bx + 3.5, y: by - 7.5}, {x: bx - 3.5, y: by - 7.5},
+  ];
+  for (const c of hc) {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI / 3) * i;
+      const px = c.x + 4.5 * Math.cos(a);
+      const py = c.y + 4.5 * Math.sin(a);
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath(); ctx.stroke();
+  }
+  ctx.restore();
+
+  // 머리
+  ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(bx + 14, by - 9, 5, 4, -0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#222222';
+  ctx.beginPath(); ctx.arc(bx + 17, by - 10, 1, 0, Math.PI * 2); ctx.fill();
+
+  ctx.restore();
+}
+
+// --- 반딧불이 ---
+function drawFirefly(cx, cy, t, state) {
+  ctx.save();
+  const swarmCX = cx;
+  const swarmCY = cy - 10;
+
+  for (const p of state.flies) {
+    const orbitAngle = t * p.orbitSpeed + p.orbitPhase;
+    const ox = swarmCX + Math.cos(orbitAngle) * p.orbitRadius;
+    const oy = swarmCY + Math.sin(orbitAngle) * p.orbitRadius * 0.45;
+    const lx = Math.sin(p.freqX * t + p.lissPhase) * p.ampX;
+    const ly = Math.sin(p.freqY * t) * p.ampY;
+    const fx = ox + lx;
+    const fy = oy + ly;
+
+    const blinkAlpha = 0.15 + Math.abs(Math.sin(Math.PI * p.blinkSpeed * t + p.blinkOffset)) * 0.85;
+    ctx.globalAlpha = blinkAlpha;
+
+    // 글로우
+    const gr = ctx.createRadialGradient(fx, fy, 0, fx, fy, p.radius * 4);
+    gr.addColorStop(0, 'rgba(255,238,136,0.55)');
+    gr.addColorStop(0.5, 'rgba(255,220,80,0.2)');
+    gr.addColorStop(1, 'rgba(255,200,50,0)');
+    ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.arc(fx, fy, p.radius * 4, 0, Math.PI * 2); ctx.fill();
+
+    // 코어
+    ctx.fillStyle = '#FFEE88';
+    ctx.strokeStyle = '#FFCC33'; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.arc(fx, fy, p.radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// ============================================================
+//  2행 - 이세계 팔로워
+// ============================================================
+
+// --- 슬라임 ---
+function drawSlime(cx, cy, t) {
+  const gY = cy + 45;
+
+  // 바운스 사이클: 찌그러짐 → 복원 → 튀어오름 → 착지
+  const phase = (t * 1.8) % (Math.PI * 2);
+  const squish = Math.sin(phase);
+
+  // 찌그러지면 납작+넓게, 복원되면 키 크고 좁게
+  const scaleX = 1.0 + squish * 0.15;
+  const scaleY = 1.0 - squish * 0.2;
+
+  // 튀어오름 높이
+  const jumpHeight = Math.max(0, -squish) * 6;
+
+  const bx = cx;
+  const by = gY - jumpHeight;
+
+  ctx.save();
+  ctx.translate(bx, by);
+  ctx.scale(scaleX, scaleY);
+
+  // 그림자 (바닥에 납작한 타원)
+  ctx.save();
+  ctx.scale(1 / scaleX, 1 / scaleY); // 그림자는 스케일 영향 안 받게
+  const shadowScale = 0.7 + squish * 0.1;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+  ctx.beginPath();
+  ctx.ellipse(0, gY - by + 2, 18 * shadowScale, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // 몸통 (통통한 젤리 - 둥근 전신)
+  const bodyW = 20, bodyH = 22;
+
+  // 내부 그라데이션
+  const grad = ctx.createRadialGradient(-4, -8, 2, 0, 0, bodyW);
+  grad.addColorStop(0, 'rgba(140, 255, 140, 0.85)');
+  grad.addColorStop(0.5, 'rgba(80, 220, 80, 0.8)');
+  grad.addColorStop(1, 'rgba(40, 180, 60, 0.7)');
+  ctx.fillStyle = grad;
+
+  // 베지에로 둥글둥글한 방울 형태
+  ctx.beginPath();
+  ctx.moveTo(-bodyW, -bodyH * 0.3);
+  ctx.bezierCurveTo(-bodyW, -bodyH * 0.7, -bodyW * 0.6, -bodyH, 0, -bodyH);
+  ctx.bezierCurveTo(bodyW * 0.6, -bodyH, bodyW, -bodyH * 0.7, bodyW, -bodyH * 0.3);
+  ctx.bezierCurveTo(bodyW, bodyH * 0.1, bodyW * 0.5, bodyH * 0.25, 0, bodyH * 0.25);
+  ctx.bezierCurveTo(-bodyW * 0.5, bodyH * 0.25, -bodyW, bodyH * 0.1, -bodyW, -bodyH * 0.3);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(30, 130, 50, 0.6)';
+  ctx.lineWidth = 1.5 / scaleX;
+  ctx.stroke();
+
+  // 하이라이트 (왼쪽 위 반짝)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.beginPath();
+  ctx.ellipse(-7, -14, 5, 3, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 눈 (스케일 보정해서 일정 크기)
+  const invSX = 1 / scaleX, invSY = 1 / scaleY;
+  ctx.save();
+  ctx.scale(invSX, invSY);
+
+  const eyeY = -12 * scaleY;
+  const eyeSpacing = 7 * scaleX;
+
+  // 눈 흰자
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath(); ctx.arc(-eyeSpacing, eyeY, 3.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(eyeSpacing, eyeY, 3.5, 0, Math.PI * 2); ctx.fill();
+
+  // 눈동자
+  ctx.fillStyle = '#222222';
+  ctx.beginPath(); ctx.arc(-eyeSpacing + 0.5, eyeY + 0.5, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(eyeSpacing + 0.5, eyeY + 0.5, 2, 0, Math.PI * 2); ctx.fill();
+
+  // 눈 반짝임
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath(); ctx.arc(-eyeSpacing - 0.5, eyeY - 1, 0.9, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(eyeSpacing - 0.5, eyeY - 1, 0.9, 0, Math.PI * 2); ctx.fill();
+
+  // 입 (작은 미소)
+  ctx.strokeStyle = 'rgba(30, 130, 50, 0.5)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(0, eyeY + 7, 3, 0.15 * Math.PI, 0.85 * Math.PI);
+  ctx.stroke();
+
+  ctx.restore();
+  ctx.restore();
+}
+
+// --- 꼬마 정령 ---
+function drawSpirit(cx, cy, t) {
+  // 지그재그 떠다님
+  const bx = cx + Math.sin(t * 1.5) * 15 + Math.sin(t * 3.7) * 5;
+  const by = cy - 10 + Math.sin(t * 2.1) * 12 + Math.sin(t * 4.3) * 4;
+
+  ctx.save();
+
+  // 글로우
+  const gr = ctx.createRadialGradient(bx, by, 0, bx, by, 26);
+  gr.addColorStop(0, 'rgba(190,140,255,0.5)');
+  gr.addColorStop(0.5, 'rgba(160,100,240,0.15)');
+  gr.addColorStop(1, 'rgba(140,80,220,0)');
+  ctx.fillStyle = gr;
+  ctx.beginPath(); ctx.arc(bx, by, 26, 0, Math.PI * 2); ctx.fill();
+
+  // 몸체 (연보라 원)
+  ctx.fillStyle = 'rgba(200,160,255,0.9)';
+  ctx.strokeStyle = '#222222';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(bx, by, 14, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+  // 눈 두 개 (점)
+  ctx.fillStyle = '#222222';
+  ctx.beginPath(); ctx.arc(bx - 4, by - 2, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bx + 4, by - 2, 2, 0, Math.PI * 2); ctx.fill();
+
+  // 미소
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(bx, by + 2, 5, 0.1, Math.PI - 0.1);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// --- 마나 가루 ---
+function drawManaDust(cx, cy, t, state) {
+  ctx.save();
+
+  for (const p of state.particles) {
+    // 위치: 천천히 내려오며 좌우 흔들
+    const px = cx + p.x + Math.sin(t * 0.8 + p.phase) * 6;
+    // py: 시작 cy-55 ~ 종점 cy+55, 주기적으로 반복
+    const rawY = cy - 55 + ((p.y + cy + 55 + t * p.vy * 0.5) % 120);
+    const py = rawY;
+
+    const alpha = 0.6 + Math.sin(t * 2 + p.phase) * 0.3;
+    ctx.globalAlpha = Math.max(0.1, alpha);
+
+    // 다이아몬드 파티클
+    const s = 3 + Math.abs(Math.sin(p.phase)) * 2;
+    ctx.fillStyle = '#B070D0';
+    ctx.strokeStyle = '#222222';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(px, py - s);
+    ctx.lineTo(px + s * 0.6, py);
+    ctx.lineTo(px, py + s);
+    ctx.lineTo(px - s * 0.6, py);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// --- 미믹 상자 ---
+function drawMimic(cx, cy, t) {
+  const gY = cy + 45;
+  // 다리 걷기
+  const walkPhase = t * 2;
+  const bx = cx, by = gY;
+
+  ctx.save();
+
+  // 다리 두 개 (상자 아래 짧은 선)
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  for (const side of [-1, 1]) {
+    const sw = Math.sin(walkPhase + (side < 0 ? 0 : Math.PI)) * 5;
+    ctx.beginPath();
+    ctx.moveTo(bx + side * 10, by - 2);
+    ctx.lineTo(bx + side * 12 + sw, by);
+    ctx.stroke();
+  }
+
+  // 상자 몸통 (갈색)
+  ctx.fillStyle = '#C89040';
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(bx - 22, by - 38, 44, 30, 3);
+  ctx.fill(); ctx.stroke();
+
+  // 상자 테두리 장식 (가로줄)
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(bx - 22, by - 28); ctx.lineTo(bx + 22, by - 28); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(bx, by - 38); ctx.lineTo(bx, by - 8); ctx.stroke();
+
+  // 뚜껑 (살짝 열림) - 위쪽 직사각형
+  const lidAngle = -0.25 + Math.sin(t * 2) * 0.08; // 살짝 떨림
+  ctx.save();
+  ctx.translate(bx - 22, by - 38);
+  ctx.rotate(lidAngle);
+  ctx.fillStyle = '#D4A045';
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(0, -10, 44, 12, [3, 3, 0, 0]);
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+
+  // 뚜껑 안에서 보이는 눈 두 개
+  const eyeY = by - 40;
+  ctx.fillStyle = '#FFD700'; // 노란 눈
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(bx - 7, eyeY, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(bx + 7, eyeY, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // 동공
+  ctx.fillStyle = '#222222';
+  ctx.beginPath(); ctx.arc(bx - 7, eyeY, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bx + 7, eyeY, 2, 0, Math.PI * 2); ctx.fill();
+
+  // 자물쇠
+  ctx.fillStyle = '#FFD700'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(bx, by - 23, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.rect(bx - 3, by - 23, 6, 5); ctx.fill(); ctx.stroke();
+
+  ctx.restore();
+}
+
+// --- 박쥐 ---
+function drawBat(cx, cy, t) {
+  const bx = cx + Math.sin(t * 1.3) * 12;
+  const by = cy - 15 + Math.sin(t * 2.1) * 8;
+  const flapT = Math.abs(Math.sin(t * 8));
+
+  ctx.save();
+  ctx.translate(bx, by);
+
+  // 날개 (V자 두 쌍)
+  const wSpan = 26 * flapT;
+  const wDip = 12 * (1 - flapT);
+
+  ctx.fillStyle = '#442255';
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(s * wSpan * 0.5, -wSpan * 0.3, s * wSpan, -wDip);
+    ctx.quadraticCurveTo(s * wSpan * 0.7, wDip * 0.5, 0, 4);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  }
+
+  // 몸통
+  ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(0, 0, 6, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+  // 귀 (뾰족)
+  ctx.fillStyle = '#442255'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(s * 3, -6);
+    ctx.lineTo(s * 6, -14);
+    ctx.lineTo(s * 8, -6);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+
+  // 눈
+  ctx.fillStyle = '#FF3333';
+  ctx.beginPath(); ctx.arc(-2.5, -2, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(2.5, -2, 2, 0, Math.PI * 2); ctx.fill();
+  // 눈 광택
+  ctx.fillStyle = '#FFAAAA';
+  ctx.beginPath(); ctx.arc(-1.5, -3, 0.8, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(3.5, -3, 0.8, 0, Math.PI * 2); ctx.fill();
+
+  ctx.restore();
+}
+
+// --- 골렘 조각 ---
+function drawGolem(cx, cy, t) {
+  const gY = cy + 45;
+  const walkPhase = t * 1.2; // 느리게
+  const bodyBob = Math.abs(Math.sin(walkPhase)) * -1.5;
+  const bx = cx, by = gY + bodyBob;
+
+  ctx.save();
+
+  // 다리 두 개 (짧고 굵은 네모)
+  ctx.fillStyle = '#888899'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  for (const side of [-1, 1]) {
+    const sw = Math.sin(walkPhase + (side < 0 ? 0 : Math.PI)) * 3;
+    ctx.beginPath();
+    ctx.roundRect(bx + side * 8 - 5 + sw, by - 8, 10, 10, 2);
+    ctx.fill(); ctx.stroke();
+  }
+
+  // 팔 두 개 (옆에 붙은 짧은 직사각형)
+  for (const side of [-1, 1]) {
+    const armSw = Math.sin(walkPhase + (side < 0 ? 0 : Math.PI)) * 4;
+    ctx.fillStyle = '#999AAA';
+    ctx.beginPath();
+    ctx.roundRect(bx + side * 18 - 4, by - 28 + armSw, 8, 16, 2);
+    ctx.fill(); ctx.stroke();
+  }
+
+  // 몸통 (회색 네모 돌덩이)
+  ctx.fillStyle = '#AAAACC'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(bx - 15, by - 40, 30, 30, 3);
+  ctx.fill(); ctx.stroke();
+
+  // 몸통 균열선
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(bx - 5, by - 40); ctx.lineTo(bx - 8, by - 20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(bx + 8, by - 35); ctx.lineTo(bx + 5, by - 20); ctx.stroke();
+
+  // 눈 두 개 (주황빛)
+  ctx.fillStyle = '#FF8800'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(bx - 6, by - 30, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(bx + 6, by - 30, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#222222';
+  ctx.beginPath(); ctx.arc(bx - 6, by - 30, 1.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bx + 6, by - 30, 1.5, 0, Math.PI * 2); ctx.fill();
+
+  ctx.restore();
+}
+
+// --- 도깨비불 ---
+function drawWillOWisp(cx, cy, t, state) {
+  ctx.save();
+  const swarmCX = cx;
+  const swarmCY = cy - 10;
+
+  for (const p of state.fires) {
+    const orbitAngle = t * 0.5 + p.orbitPhase;
+    const ox = swarmCX + Math.cos(orbitAngle) * 25;
+    const oy = swarmCY + Math.sin(orbitAngle) * 15;
+    const lx = Math.sin(t * 1.2 + p.lissPhase) * 10;
+    const ly = Math.sin(t * 1.8) * 8;
+    const fx = ox + lx;
+    const fy = oy + ly;
+
+    // 불규칙 깜빡임
+    const blinkAlpha = 0.2 + Math.abs(Math.sin(Math.PI * p.blinkSpeed * t + p.blinkOffset)) * 0.8;
+    ctx.globalAlpha = blinkAlpha;
+
+    // 푸른 불꽃 글로우
+    const gr = ctx.createRadialGradient(fx, fy, 0, fx, fy, p.radius * 5);
+    gr.addColorStop(0, 'rgba(100,200,255,0.7)');
+    gr.addColorStop(0.4, 'rgba(50,100,255,0.3)');
+    gr.addColorStop(1, 'rgba(0,50,200,0)');
+    ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.arc(fx, fy, p.radius * 5, 0, Math.PI * 2); ctx.fill();
+
+    // 불꽃 코어
+    ctx.fillStyle = '#88DDFF';
+    ctx.strokeStyle = '#44AAFF'; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.arc(fx, fy, p.radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// ============================================================
+//  3행 - 우주 팔로워
+// ============================================================
+
+// --- 탐사 로봇 ---
+function drawExploreBot(cx, cy, t) {
+  const gY = cy + 45;
+  const walkPhase = t * 2.5;
+  const bx = cx, by = gY;
+
+  ctx.save();
+
+  // 바퀴 두 개
+  ctx.fillStyle = '#555566'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  for (const side of [-1, 1]) {
+    const bounceY = Math.sin(walkPhase + (side < 0 ? 0 : Math.PI)) * 1.5;
+    ctx.beginPath(); ctx.arc(bx + side * 12, by - 4 + bounceY, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // 바퀴 살
+    ctx.strokeStyle = '#888899'; ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) {
+      const a = (Math.PI / 2) * i + walkPhase * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(bx + side * 12, by - 4 + bounceY);
+      ctx.lineTo(bx + side * 12 + Math.cos(a) * 5, by - 4 + bounceY + Math.sin(a) * 5);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  }
+
+  // 몸통 (네모)
+  ctx.fillStyle = '#AABBCC'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(bx - 16, by - 32, 32, 24, 3);
+  ctx.fill(); ctx.stroke();
+
+  // 몸통 패널라인
+  ctx.strokeStyle = '#888899'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(bx - 16, by - 22); ctx.lineTo(bx + 16, by - 22); ctx.stroke();
+
+  // 안테나 (선 + 점)
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(bx - 5, by - 32);
+  ctx.lineTo(bx - 8, by - 44);
+  ctx.stroke();
+  ctx.fillStyle = '#FF4444'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(bx - 8, by - 44, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+  // 카메라 렌즈 (원)
+  ctx.fillStyle = '#334455'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(bx + 4, by - 22, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#4488CC';
+  ctx.beginPath(); ctx.arc(bx + 4, by - 22, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#AADDFF';
+  ctx.beginPath(); ctx.arc(bx + 6, by - 24, 1.5, 0, Math.PI * 2); ctx.fill();
+
+  ctx.restore();
+}
+
+// --- 소형 드론 ---
+function drawDrone(cx, cy, t) {
+  const bx = cx + Math.sin(t * 0.8) * 6;
+  const by = cy - 10 + Math.sin(t * 1.2) * 5;
+  const propRot = t * 8;
+
+  ctx.save();
+
+  // 프로펠러 (회전)
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  const propLen = 14;
+  for (let i = 0; i < 2; i++) {
+    const a = propRot + i * Math.PI;
+    ctx.save();
+    ctx.translate(bx, by - 10);
+    ctx.fillStyle = 'rgba(150,180,220,0.7)';
+    ctx.beginPath();
+    ctx.ellipse(Math.cos(a) * propLen * 0.5, Math.sin(a) * propLen * 0.5, propLen * 0.5, 3, a, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 몸통 (원반형 타원)
+  ctx.fillStyle = '#CCDDEE'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(bx, by, 22, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+  // 아래 돔
+  ctx.fillStyle = '#AABBDD'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.ellipse(bx, by + 2, 12, 7, 0, 0, Math.PI); ctx.fill(); ctx.stroke();
+
+  // 빨간 점 깜빡임
+  const blink = Math.abs(Math.sin(t * 3)) > 0.5;
+  if (blink) {
+    ctx.fillStyle = '#FF3333';
+    ctx.beginPath(); ctx.arc(bx + 16, by - 1, 2.5, 0, Math.PI * 2); ctx.fill();
+  } else {
+    ctx.fillStyle = '#440000';
+    ctx.beginPath(); ctx.arc(bx + 16, by - 1, 2.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // 중앙 나사/허브
+  ctx.fillStyle = '#556677'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(bx, by - 10, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+  ctx.restore();
+}
+
+// --- 유성 파편 ---
+function drawMeteor(cx, cy, t, state) {
+  ctx.save();
+
+  // 클리핑 (셀 안)
+  ctx.beginPath();
+  ctx.rect(cx - 55, cy - 55, 110, 110);
+  ctx.clip();
+
+  for (const rock of state.rocks) {
+    // 대각선 낙하 (주기적 반복)
+    const px = cx + rock.x + ((rock.vx * t) % 120) - 60;
+    const py = cy + rock.y + ((rock.vy * t) % 120) - 60;
+
+    // 꼬리 (trail)
+    const trailLen = 14;
+    const grad = ctx.createLinearGradient(px, py, px - trailLen, py - trailLen);
+    grad.addColorStop(0, 'rgba(255,200,100,0.7)');
+    grad.addColorStop(1, 'rgba(255,150,50,0)');
+    ctx.strokeStyle = grad; ctx.lineWidth = rock.r;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(px - trailLen, py - trailLen);
+    ctx.stroke();
+
+    // 돌멩이 (어두운 회색 원)
+    ctx.fillStyle = '#888877'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(px, py, rock.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// --- 외계 고양이 ---
+function drawAlienCat(cx, cy, t) {
+  const gY = cy + 45;
+  const tailPhase = t * 1.2;
+  const bx = cx, by = gY;
+
+  ctx.save();
+  ctx.translate(bx, by);
+  ctx.scale(0.9, 0.9);
+
+  // 초록 틴트 오버레이 (뒤에 미리 깔기)
+  ctx.globalAlpha = 0.15;
+  ctx.fillStyle = '#00FF88';
+  ctx.beginPath(); ctx.ellipse(0, -30, 30, 40, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // 꼬리 (고양이와 동일, 약간 초록)
+  const sw = Math.sin(tailPhase) * 3;
+  ctx.strokeStyle = '#CCFFCC'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-8, -12);
+  ctx.bezierCurveTo(-22 + sw, -28, -18 + sw, -48, -6 + sw, -52);
+  ctx.stroke();
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-8, -12);
+  ctx.bezierCurveTo(-22 + sw, -28, -18 + sw, -48, -6 + sw, -52);
+  ctx.stroke();
+
+  // 몸통
+  ctx.fillStyle = '#EEFFEE'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(0, -10, 11, 14, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+  // 앞발
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  for (const px of [4, 9]) {
+    ctx.beginPath(); ctx.moveTo(px, -2); ctx.lineTo(px, 4); ctx.stroke();
+    ctx.fillStyle = '#EEFFEE'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(px, 5, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+
+  // 머리 (살짝 초록)
+  const hx = 5, hy = -36, hr = 12;
+  ctx.fillStyle = '#EEFFEE'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  // 귀
+  for (const [ex, ey1, ey2, ex2] of [
+    [hx - 8, hy - 2, hx - 12, hx - 2],
+    [hx + 2, hx + 8, hx + 12, hy + 2],
+  ]) {
+    // simplified ear
+  }
+  // 귀 왼
+  ctx.beginPath();
+  ctx.moveTo(hx - 8, hy - 2); ctx.lineTo(hx - 12, hy - hr - 6); ctx.lineTo(hx - 2, hy - 4);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 귀 오른
+  ctx.beginPath();
+  ctx.moveTo(hx + 2, hy - 4); ctx.lineTo(hx + 8, hy - hr - 6); ctx.lineTo(hx + 12, hy - 2);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // 안테나 두 개 (선 + 점)
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(hx - 5, hy - hr); ctx.lineTo(hx - 10, hy - hr - 14); ctx.stroke();
+  ctx.fillStyle = '#00FF88'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(hx - 10, hy - hr - 14, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(hx + 5, hy - hr); ctx.lineTo(hx + 12, hy - hr - 12); ctx.stroke();
+  ctx.fillStyle = '#00FF88'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(hx + 12, hy - hr - 12, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+  // 머리
+  ctx.fillStyle = '#EEFFEE'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(hx, hy, hr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+  // 눈 (초록빛)
+  ctx.fillStyle = '#00DD66'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(hx + 3, hy - 3, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#222222';
+  ctx.beginPath(); ctx.arc(hx + 3, hy - 3, 1.5, 0, Math.PI * 2); ctx.fill();
+
+  // 코
+  ctx.fillStyle = '#00AA44';
+  ctx.beginPath(); ctx.arc(hx + 13, hy + 2, 1.5, 0, Math.PI * 2); ctx.fill();
+
+  // 주둥이
+  ctx.fillStyle = 'rgba(220,255,220,0.5)'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(hx + 8, hy - 1);
+  ctx.bezierCurveTo(hx + 15, hy - 2, hx + 15, hy + 5, hx + 8, hy + 5);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  ctx.restore();
+}
+
+// --- 소형 UFO ---
+function drawUFO(cx, cy, t) {
+  const bx = cx + Math.sin(t * 0.9) * 10; // 좌우 흔들림
+  const by = cy - 15 + Math.sin(t * 1.5) * 4;
+
+  ctx.save();
+
+  // 아래 삼각형 빛줄기
+  const beamFlicker = 0.4 + Math.abs(Math.sin(t * 4)) * 0.4;
+  ctx.globalAlpha = beamFlicker;
+  const grad = ctx.createLinearGradient(bx, by + 8, bx, by + 45);
+  grad.addColorStop(0, 'rgba(100,255,100,0.6)');
+  grad.addColorStop(1, 'rgba(100,255,100,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(bx - 10, by + 8);
+  ctx.lineTo(bx - 22, by + 45);
+  ctx.lineTo(bx + 22, by + 45);
+  ctx.lineTo(bx + 10, by + 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // UFO 접시 (타원)
+  ctx.fillStyle = '#BBCCDD'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(bx, by, 28, 9, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+  // UFO 위 돔
+  ctx.fillStyle = 'rgba(200,230,255,0.85)'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.ellipse(bx, by - 4, 14, 10, 0, Math.PI, 0, true); ctx.fill(); ctx.stroke();
+
+  // 돔 하이라이트
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.beginPath(); ctx.ellipse(bx - 3, by - 9, 4, 3, -0.3, 0, Math.PI * 2); ctx.fill();
+
+  // 하단 점멸 등 (빨강/파랑/초록 교차)
+  const lights = [
+    { x: -18, color: '#FF3333' },
+    { x: 0,   color: '#3399FF' },
+    { x: 18,  color: '#33FF66' },
+  ];
+  for (const l of lights) {
+    const on = Math.abs(Math.sin(t * 3 + l.x)) > 0.5;
+    ctx.fillStyle = on ? l.color : '#333344';
+    ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.arc(bx + l.x, by + 7, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// --- 화물 컨테이너 ---
+function drawCargoCrate(cx, cy, t) {
+  const gY = cy + 45;
+  const walkPhase = t * 1.5;
+  const bx = cx, by = gY;
+
+  ctx.save();
+
+  // 로봇 다리 4개 (짧고 뭉툭)
+  ctx.strokeStyle = '#222222'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  const crateLegs = [
+    { ox: -14, phase: walkPhase },
+    { ox: -5,  phase: walkPhase + Math.PI * 0.5 },
+    { ox: 5,   phase: walkPhase + Math.PI },
+    { ox: 14,  phase: walkPhase + Math.PI * 1.5 },
+  ];
+  for (const leg of crateLegs) {
+    const sw = Math.sin(leg.phase) * 4;
+    ctx.beginPath();
+    ctx.moveTo(bx + leg.ox, by - 4);
+    ctx.lineTo(bx + leg.ox + sw * 0.3, by);
+    ctx.stroke();
+  }
+
+  // 컨테이너 직육면체
+  const cW = 40, cH = 30;
+  // 윗면 (약간 기울어진 평행사변형으로 3D 느낌)
+  ctx.fillStyle = '#AA7744'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(bx - cW / 2, by - cH);
+  ctx.lineTo(bx - cW / 2 + 8, by - cH - 8);
+  ctx.lineTo(bx + cW / 2 + 8, by - cH - 8);
+  ctx.lineTo(bx + cW / 2, by - cH);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // 옆면 (오른쪽)
+  ctx.fillStyle = '#996633';
+  ctx.beginPath();
+  ctx.moveTo(bx + cW / 2, by);
+  ctx.lineTo(bx + cW / 2 + 8, by - 8);
+  ctx.lineTo(bx + cW / 2 + 8, by - cH - 8);
+  ctx.lineTo(bx + cW / 2, by - cH);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // 앞면
+  ctx.fillStyle = '#CC9955';
+  ctx.beginPath();
+  ctx.roundRect(bx - cW / 2, by - cH, cW, cH, 2);
+  ctx.fill(); ctx.stroke();
+
+  // 앞면 세로 줄 (컨테이너 패널)
+  ctx.strokeStyle = '#AA7733'; ctx.lineWidth = 0.8;
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(bx + i * 13, by - cH);
+    ctx.lineTo(bx + i * 13, by);
+    ctx.stroke();
+  }
+
+  // 작은 화면/로고
+  ctx.fillStyle = '#334455'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.roundRect(bx - 8, by - cH + 8, 16, 10, 1); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#44AAFF';
+  ctx.beginPath(); ctx.arc(bx, by - cH + 13, 3, 0, Math.PI * 2); ctx.fill();
+
+  ctx.restore();
+}
+
+// --- 부유 신호등 ---
+function drawFloatingLight(cx, cy, t) {
+  const bx = cx;
+  const by = cy - 5 + Math.sin(t * 1.0) * 6; // 위아래 부유
+  const tilt = Math.sin(t * 1.0) * 0.08; // 살짝 기울어짐
+
+  // 색상 사이클: 초록(0~3s) → 노랑(3~4s) → 빨강(4~6s) → 초록...
+  const period = 6;
+  const phase = t % period;
+  let lightColor, lightGlow;
+  if (phase < 3) {
+    const f = Math.min(1, phase / 0.5); // 페이드인
+    lightColor = `rgba(${Math.round(50*f)},${Math.round(220*f)},${Math.round(50*f)},0.95)`;
+    lightGlow = `rgba(50,220,50,${0.4 * f})`;
+  } else if (phase < 4) {
+    lightColor = 'rgba(240,220,30,0.95)';
+    lightGlow = 'rgba(240,220,30,0.4)';
+  } else {
+    lightColor = 'rgba(220,50,50,0.95)';
+    lightGlow = 'rgba(220,50,50,0.4)';
+  }
+
+  ctx.save();
+  ctx.translate(bx, by);
+  ctx.rotate(tilt);
+
+  // 매달리는 선
+  ctx.strokeStyle = '#444444'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(0, -28); ctx.stroke();
+
+  // 케이스 (직사각형)
+  ctx.fillStyle = '#333344'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(-14, -28, 28, 56, 4); ctx.fill(); ctx.stroke();
+
+  // 신호등 3개 원형
+  const signalColors = [
+    { y: -18, active: phase >= 4 },            // 빨강
+    { y: 0,   active: phase >= 3 && phase < 4 }, // 노랑
+    { y: 18,  active: phase < 3 },               // 초록
+  ];
+  const baseColors = ['#440000', '#444400', '#004400'];
+  const activeColors = ['#FF3333', '#FFDD22', '#33DD33'];
+  const glowColors = ['rgba(255,50,50,0.5)', 'rgba(255,220,30,0.5)', 'rgba(50,220,50,0.5)'];
+
+  for (let i = 0; i < 3; i++) {
+    const sc = signalColors[i];
+    // 글로우
+    if (sc.active) {
+      const gr = ctx.createRadialGradient(0, sc.y, 0, 0, sc.y, 14);
+      gr.addColorStop(0, glowColors[i]);
+      gr.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.arc(0, sc.y, 14, 0, Math.PI * 2); ctx.fill();
+    }
+    // 렌즈
+    ctx.fillStyle = sc.active ? activeColors[i] : baseColors[i];
+    ctx.strokeStyle = '#222222'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, sc.y, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // 하이라이트
+    if (sc.active) {
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.beginPath(); ctx.arc(-2.5, sc.y - 2.5, 3, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // 하단 작은 태양전지판
+  ctx.fillStyle = '#446688'; ctx.strokeStyle = '#222222'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.roundRect(-10, 28, 20, 6, 1); ctx.fill(); ctx.stroke();
+  // 셀 구분선
+  ctx.strokeStyle = '#335566'; ctx.lineWidth = 0.5;
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath(); ctx.moveTo(i * 6.5, 28); ctx.lineTo(i * 6.5, 34); ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ============================================================
+//  메인 렌더 루프
+// ============================================================
+function getCellCenter(index) {
+  const col = index % COLS;
+  const row = Math.floor(index / COLS);
+  const x = PADDING + col * CELL_W + CELL_W / 2;
+  // 40px 행 라벨 오프셋 + 행 헤더
+  const y = PADDING + 40 + row * CELL_H + CELL_H / 2;
+  return { x, y };
+}
+
+function render(timestamp) {
+  if (!startTime) startTime = timestamp;
+  const t = (timestamp - startTime) / 1000; // 초
+
+  // 배경
+  ctx.fillStyle = '#111111';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // 행 라벨
+  ctx.font = 'bold 13px "Comic Sans MS", cursive';
+  ctx.textAlign = 'left';
+  for (let r = 0; r < ROWS; r++) {
+    const labelColors = ['#AAAACC', '#88FF88', '#88CCFF'];
+    ctx.fillStyle = labelColors[r];
+    const labelY = PADDING + 40 + r * CELL_H + 18;
+    ctx.fillText(ROW_LABELS[r], PADDING + 4, labelY - CELL_H / 2 + 5);
+  }
+
+  // 그리드 셀
+  for (let i = 0; i < FOLLOWERS.length; i++) {
+    const follower = FOLLOWERS[i];
+    const { x, y } = getCellCenter(i);
+    const col = i % COLS;
+    const row = Math.floor(i / COLS);
+    const cellX = PADDING + col * CELL_W;
+    const cellY = PADDING + 40 + row * CELL_H;
+
+    // 셀 테두리
+    ctx.strokeStyle = '#333333';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cellX, cellY, CELL_W, CELL_H);
+
+    // 지면선
+    const groundY = y + CELL_H / 2 - 20;
+    ctx.strokeStyle = '#444444';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(cellX + 8, groundY);
+    ctx.lineTo(cellX + CELL_W - 8, groundY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 클리핑: 셀 안에서만 그리기
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cellX + 1, cellY + 1, CELL_W - 2, CELL_H - 2);
+    ctx.clip();
+
+    // 팔로워 그리기 (셀 중앙 기준)
+    const drawY = groundY; // 지면선이 "발" 위치
+    const drawCX = x;
+    const drawCY = drawY; // 각 draw함수가 cy+45를 지면으로 쓰므로 cy = drawY - 45
+
+    // draw 함수는 (cx, cy, t) 형태이며 cy + 45 = 지면선 위치가 되도록
+    // 즉 cy = groundY - 45
+    follower.draw(drawCX, groundY - 45, t, states[i]);
+
+    ctx.restore();
+
+    // 이름 텍스트
+    ctx.font = '11px "Comic Sans MS", cursive';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#CCCCCC';
+    ctx.fillText(follower.name, x, cellY + CELL_H - 6);
+  }
+
+  requestAnimationFrame(render);
+}
+
+// ============================================================
+//  시작
+// ============================================================
+initStates();
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

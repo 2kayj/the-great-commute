@@ -272,3 +272,85 @@
 .rank-badge--politics { background: #D4AF37; }
 .rank-badge--isekai   { background: #9B59B6; }
 .rank-badge--space    { background: #2C3E50; }
+
+/* Coffee HUD */
+.coffee-hud {
+  position: absolute;
+  top: 72px;
+  right: 12px;
+  z-index: 25;
+  font-size: 16px;
+  font-weight: bold;
+  color: #222;
+  background: rgba(255, 255, 255, 0.92);
+  border: 2.5px solid #222;
+  padding: 5px 12px;
+  border-radius: 12px;
+  box-shadow: 2px 2px 0 #222;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Coffee effect overlay ("☕ 원샷!") */
+.coffee-effect {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 40;
+  font-size: 40px;
+  font-weight: bold;
+  color: #222;
+  background: rgba(255, 255, 255, 0.95);
+  border: 4px solid #222;
+  box-shadow: 5px 5px 0 #222;
+  padding: 16px 32px;
+  border-radius: 8px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.coffee-effect.coffee-effect-visible {
+  display: block;
+  animation: coffeeEffectPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.coffee-effect.coffee-effect-fadeout {
+  animation: coffeeEffectFade 0.4s ease-out forwards;
+}
+
+@keyframes coffeeEffectPop {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes coffeeEffectFade {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(0.9); }
+}
+
+/* Coffee shield bar */
+.coffee-shield-bar {
+  position: absolute;
+  bottom: max(96px, calc(env(safe-area-inset-bottom) + 72px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  width: 200px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 2.5px solid #222;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 #222;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.coffee-shield-bar__fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #c8860a, #f5c518);
+  border-radius: 4px;
+  transition: width 0.1s linear;
+}

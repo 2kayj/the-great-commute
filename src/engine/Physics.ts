@@ -30,6 +30,7 @@ export class Physics {
   private speedMultiplier: number = 1.0;
   private zeroGravity: boolean = false;
   private invincible: boolean = false;
+  private coffeeShield: { active: boolean; remainingDistance: number } = { active: false, remainingDistance: 0 };
   private eventFrame: EventFrame = { bumpImpulse: 0, windTorque: 0, slopeOffset: 0 };
 
   constructor() {
@@ -57,6 +58,7 @@ export class Physics {
     this.accumulator = 0;
     this.stageMultiplier = 1.0;
     this.speedMultiplier = 1.0;
+    this.coffeeShield = { active: false, remainingDistance: 0 };
   }
 
   setStageMultiplier(multiplier: number): void {
@@ -77,6 +79,18 @@ export class Physics {
 
   setInvincible(enabled: boolean): void {
     this.invincible = enabled;
+  }
+
+  activateCoffeeShield(distance: number): void {
+    this.coffeeShield = { active: true, remainingDistance: distance };
+  }
+
+  isCoffeeShieldActive(): boolean {
+    return this.coffeeShield.active;
+  }
+
+  getCoffeeShieldRemaining(): number {
+    return this.coffeeShield.remainingDistance;
   }
 
   setEventFrame(frame: EventFrame): void {
@@ -160,12 +174,23 @@ export class Physics {
     this.state.angle = clamp(this.state.angle, -MAX_ANGLE * 1.5, MAX_ANGLE * 1.5);
 
     if (Math.abs(this.state.angle) >= MAX_ANGLE) {
-      if (this.invincible) {
-        this.state.angle = 0;
-        this.state.angularVelocity = 0;
+      if (this.invincible || this.coffeeShield.active) {
+        // 게임오버 방지, 경계에서 반대로 튕겨냄 (완전 리셋 X)
+        const sign = this.state.angle > 0 ? 1 : -1;
+        this.state.angle = sign * MAX_ANGLE * 0.6;
+        this.state.angularVelocity = -sign * Math.abs(this.state.angularVelocity) * 0.3;
       } else {
         this.state.isGameOver = true;
         return;
+      }
+    }
+
+    // Coffee shield distance countdown
+    if (this.coffeeShield.active) {
+      const distanceDelta = (this.state.speed / 100) * dt;
+      this.coffeeShield.remainingDistance -= distanceDelta;
+      if (this.coffeeShield.remainingDistance <= 0) {
+        this.coffeeShield = { active: false, remainingDistance: 0 };
       }
     }
 

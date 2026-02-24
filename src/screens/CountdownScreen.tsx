@@ -1,8 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { useStageStore } from '../store/stageStore';
 import { Physics } from '../engine/Physics';
 import { CharacterRenderer } from '../engine/CharacterRenderer';
 import { BackgroundRenderer } from '../engine/BackgroundRenderer';
+import { getThemeForDays } from '../engine/themes';
+import { getRankForDays } from '../data/rankTable';
+import type { WorldPhase } from '../types/rank.types';
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
@@ -15,10 +19,42 @@ import './CountdownScreen.css';
 const PREVIEW_W = 390;
 const PREVIEW_H = 844;
 
-const MESSAGES: Record<number, { main: string; sub: string }> = {
-  3: { main: '신입을 출근시켜 주세요!', sub: '화면 좌/우를 탭해 균형을 잡아요' },
-  2: { main: '커피 들고 출발!',   sub: '커피 쏟지 마세요!' },
-  1: { main: '이제 진짜 출발이에요!',           sub: '집중하세요!' },
+const WORLD_MESSAGES: Record<WorldPhase, {
+  countdown: Record<number, { main: string; sub: string }>;
+  go: { main: string; sub: string };
+}> = {
+  company: {
+    countdown: {
+      3: { main: '신입을 출근시켜 주세요!', sub: '화면 좌/우를 탭해 균형을 잡아요' },
+      2: { main: '커피 들고 출발!', sub: '커피 쏟지 마세요!' },
+      1: { main: '이제 진짜 출발이에요!', sub: '집중하세요!' },
+    },
+    go: { main: '출발!', sub: '균형을 잡으며 오피스까지 달려가요!' },
+  },
+  politics: {
+    countdown: {
+      3: { main: 'VIP를 출근시켜 주세요!', sub: '화면 좌/우를 탭해 균형을 잡아요' },
+      2: { main: '커피 들고 출발!', sub: '커피 쏟지 마세요!' },
+      1: { main: '이제 진짜 출발이에요!', sub: '집중하세요!' },
+    },
+    go: { main: '출발!', sub: '균형을 잡으며 본사까지 달려가요!' },
+  },
+  isekai: {
+    countdown: {
+      3: { main: '용사를 출근시켜 주세요!', sub: '화면 좌/우를 탭해 균형을 잡아요' },
+      2: { main: '검 들고 출발!', sub: '검 떨어뜨리지 마세요!' },
+      1: { main: '이제 진짜 출발이에요!', sub: '집중하세요!' },
+    },
+    go: { main: '출발!', sub: '균형을 잡으며 목적지까지 달려가요!' },
+  },
+  space: {
+    countdown: {
+      3: { main: '우주인을 출근시켜 주세요!', sub: '화면 좌/우를 탭해 균형을 잡아요' },
+      2: { main: '깃발 들고 출발!', sub: '깃발 놓치지 마세요!' },
+      1: { main: '이제 진짜 출발이에요!', sub: '집중하세요!' },
+    },
+    go: { main: '출발!', sub: '균형을 잡으며 기지까지 달려가요!' },
+  },
 };
 
 export const CountdownScreen: React.FC = () => {
@@ -91,6 +127,12 @@ export const CountdownScreen: React.FC = () => {
     const bg      = bgRef.current;
     const physics = physicsRef.current;
 
+    const totalDays = useStageStore.getState().totalCompletedDays;
+    const theme = getThemeForDays(totalDays);
+    bg.setTheme(theme);
+    const rank = getRankForDays(totalDays);
+    char.setItem(rank.item);
+
     physics.reset();
 
     const loop = (timestamp: number) => {
@@ -119,8 +161,12 @@ export const CountdownScreen: React.FC = () => {
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
+  const totalCompletedDays = useStageStore(s => s.totalCompletedDays);
+  const rank = getRankForDays(totalCompletedDays);
+  const worldMsgs = WORLD_MESSAGES[rank.world as WorldPhase] ?? WORLD_MESSAGES.company;
+
   const isGo = count === 'GO';
-  const msg  = typeof count === 'number' ? MESSAGES[count] : null;
+  const msg  = typeof count === 'number' ? worldMsgs.countdown[count] : null;
 
   return (
     <div className={`countdown-screen ${flash ? 'do-flash' : ''}`}>
@@ -148,8 +194,8 @@ export const CountdownScreen: React.FC = () => {
         )}
         {isGo && (
           <div className="cd-msg">
-            <div className="msg-main">출발!</div>
-            <div className="msg-sub">균형을 잡으며 오피스까지 달려가요!</div>
+            <div className="msg-main">{worldMsgs.go.main}</div>
+            <div className="msg-sub">{worldMsgs.go.sub}</div>
           </div>
         )}
       </div>

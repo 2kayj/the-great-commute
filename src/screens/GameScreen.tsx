@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useRecordStore } from '../store/recordStore';
 import { useStageStore } from '../store/stageStore';
+import { useItemStore } from '../store/itemStore';
 import { GameLoop } from '../engine/GameLoop';
 import { Physics } from '../engine/Physics';
 import { EventManager } from '../engine/EventManager';
@@ -72,151 +73,160 @@ function getRankGroup(rankId: string): RankGroup {
 const GROUP_SPEECHES: Record<RankGroup, Record<number, string>> = {
   // ===== 회사 - 말단 (신입/대리/과장) =====
   'company-junior': {
-    10:  '출근하기 싫다...',
-    20:  '왜 이렇게 멀어...',
-    30:  '커피 쏟으면 죽는다',
-    40:  '아 다리 풀려...',
-    50:  '지각이다 지각!!',
-    60:  '팀장님 제발...',
-    70:  '월급이 적어...',
-    80:  '오늘도 야근인가',
-    90:  '퇴사할까...',
+    10:  '오늘도 출근이다',
+    20:  '커피가 나보다 안정적이다',
+    30:  '이 커피 한 잔의 무게...',
+    40:  '오늘 점심 뭐 먹지',
+    50:  '반쯤 왔다 아마',
+    60:  '바람이 분다',
+    70:  '월급날까지 며칠이지',
+    80:  '걷다 보면 도착하겠지',
+    90:  '회사 보이려나',
     100: '100m 돌파!!',
-    120: '비가 올 것 같은데...',
+    120: '구두가 새 거긴 한데',
     150: '거의 다 왔다!!',
   },
   // ===== 회사 - 관리직 (팀장/부장) =====
   'company-manager': {
-    10:  '출근하기 싫다...',
-    20:  '왜 이렇게 멀어...',
-    30:  '커피 쏟으면 죽는다',
-    40:  '아 다리 풀려...',
-    50:  '회의 또 잡혔네...',
-    60:  '부하직원이 안 보여...',
-    70:  '보고서가 산더미...',
-    80:  '부서 관리가 힘들어...',
-    90:  '임원 승진 가능할까...',
+    10:  '오늘 회의 몇 개지',
+    20:  '커피가 두 잔째다',
+    30:  '결재 서류 떠오른다',
+    40:  '넥타이가 비뚤어진 것 같다',
+    50:  '이 길도 꽤 걸었다',
+    60:  '하늘이 높다',
+    70:  '점심은 냉면으로',
+    80:  '구두 굽이 닳았나',
+    90:  '사무실 자리 정리해뒀나',
     100: '100m 돌파!!',
-    120: '비가 올 것 같은데...',
+    120: '회의실 자리 남았으려나',
     150: '거의 다 왔다!!',
   },
   // ===== 회사 - 임원 (상무/사장) =====
   'company-exec': {
-    10:  '오늘도 출근이다...',
-    20:  '주가가 신경쓰여...',
-    30:  '커피 쏟으면 죽는다',
-    40:  '아 다리 풀려...',
-    50:  '이사회 준비해야지...',
-    60:  '경영이 쉽지 않아...',
-    70:  '실적을 올려야 해...',
-    80:  '회사가 안 보여...',
-    90:  '은퇴할까...',
+    10:  '출근은 루틴이다',
+    20:  '주가는 안 봤다',
+    30:  '커피 온도가 딱 좋다',
+    40:  '오늘 일정이 뭐였더라',
+    50:  '이 길이 좀 익숙해졌다',
+    60:  '구름이 낮다',
+    70:  '점심은 누가 사주려나',
+    80:  '뒷산이 보인다',
+    90:  '오늘 골프 약속이었나',
     100: '100m 돌파!!',
-    120: '비가 올 것 같은데...',
+    120: '양복에 먼지가 앉았다',
     150: '거의 다 왔다!!',
   },
   // ===== 정치 - 재벌 (회장/총수) =====
   'politics-chaebol': {
-    10:  '오늘도 회의인가...',
-    20:  '그룹 경영은 힘들어...',
-    30:  '결재서류 산더미...',
-    40:  '비서실 어디갔어',
-    50:  '후계자 교육시켜야...',
-    60:  '주주총회가 다가온다...',
-    70:  '사업 확장해볼까...',
-    80:  '본사가 왜 이렇게 멀어',
+    10:  '오늘도 본사 간다',
+    20:  '커피를 비서가 안 들었다',
+    30:  '직접 들고 있다 이걸',
+    40:  '바람이 양복을 스친다',
+    50:  '반은 온 것 같다',
+    60:  '오늘 뉴스는 뭘까',
+    70:  '점심은 한정식으로',
+    80:  '본사가 보이려나',
     100: '100m 돌파!!',
-    120: '언론에 안 걸리겠지...',
+    120: '운전기사 어디 간 거지',
     150: '거의 다 왔다!!',
   },
   // ===== 정치 - 정치인 (국회의원/대통령) =====
   'politics-politician': {
-    10:  '오늘도 회의인가...',
-    20:  '국민을 위하여!',
-    30:  '법안 검토해야지...',
-    40:  '수행원 어디갔어',
-    50:  '국정감사 준비해야..',
-    60:  '지지율이...',
-    70:  '공약을 지키자',
-    80:  '국회가 왜 이렇게 멀어',
+    10:  '오늘도 국회 간다',
+    20:  '커피가 흔들린다 국정처럼',
+    30:  '연설문 외웠나 모르겠다',
+    40:  '오늘 날씨가 좋긴 하다',
+    50:  '반쯤 왔다 아마도',
+    60:  '수행원이 안 보인다',
+    70:  '점심은 국밥이 좋겠다',
+    80:  '국회 돔이 보이려나',
     100: '100m 돌파!!',
-    120: '기자들 피해야...',
+    120: '카메라 없는 길이라 다행',
     150: '거의 다 왔다!!',
   },
   // ===== 이세계 - 초보 (신입용사/기사) =====
   'isekai-beginner': {
-    10:  '여기가 이세계인가...',
-    20:  '마나가 부족해...',
-    30:  '검이 무거워...',
-    40:  '몬스터 나오면 어쩌지',
-    50:  '용사인데 왜 허약함',
-    60:  '마왕 잡을 수 있을까...',
-    70:  '물약 어딨어...',
-    80:  '파티원 모집중...',
+    10:  '여긴 어디지',
+    20:  '이 물약 떨어뜨리면 안 된다',
+    30:  '풀숲에서 소리가 난다',
+    40:  '하늘이 두 개다',
+    50:  '길은 맞는 건가',
+    60:  '나무가 말을 한 것 같은데',
+    70:  '점심은 뭘 먹는 거지 여기선',
+    80:  '성벽이 보이려나',
     100: '100m 돌파!!',
-    120: '던전 입구가 보인다...',
+    120: '슬라임이 지나갔다 아마',
     150: '거의 다 왔다!!',
   },
   // ===== 이세계 - 실력자 (마법사/영웅) =====
   'isekai-skilled': {
-    10:  '오늘도 모험이다...',
-    20:  '마나가 부족해...',
-    30:  '장비 강화해야지...',
-    40:  '몬스터쯤이야...',
-    50:  '아직 더 강해져야 해...',
-    60:  '마왕성이 보이는 것 같은데...',
-    70:  '물약 어딨어...',
-    80:  '파티원들 어디갔지...',
+    10:  '오늘도 퀘스트다',
+    20:  '물약이 흔들린다',
+    30:  '마나가 아침엔 좀 낮다',
+    40:  '저 산 너머가 목적지겠지',
+    50:  '반은 왔다 아마',
+    60:  '오늘은 바람마법 필요 없다',
+    70:  '점심은 포션으로 때우나',
+    80:  '파티원이 늦잠인가',
     100: '100m 돌파!!',
-    120: '던전 입구가 보인다...',
+    120: '장비 내구도 괜찮겠지',
     150: '거의 다 왔다!!',
   },
   // ===== 이세계 - 최강 (마왕/신) =====
   'isekai-boss': {
-    10:  '오늘도 출근이다...',
-    20:  '이세계도 출근이 있다니...',
-    30:  '힘을 주체할 수 없어...',
-    40:  '부하들이 절 기다린다...',
-    50:  '세계 정복도 힘들어...',
-    60:  '용사가 온다던데...',
-    70:  '만렙인데도 허약함...',
-    80:  '마왕성이 왜 이렇게 멀어...',
+    10:  '{rankName}도 출근한다',
+    20:  '부하가 만든 커피다',
+    30:  '만렙인데 체력은 1이다',
+    40:  '{enemy}가 올 시간은 아니겠지',
+    50:  '반은 걸었다',
+    60:  '하늘이 어둡다 원래 그렇다',
+    70:  '점심은 부하가 차렸겠지',
+    80:  '{building} 보이려나',
     100: '100m 돌파!!',
-    120: '최종보스의 위엄...',
+    120: '왕좌가 그립긴 한데',
     150: '거의 다 왔다!!',
   },
   // ===== 우주 - 초보 (신입우주인/달탐험가) =====
   'space-rookie': {
-    10:  '산소가 부족해...',
-    20:  '중력이 이상해...',
-    30:  '깃발 잘 들고 가자',
-    40:  '우주가 너무 넓어...',
-    50:  '교신이 끊겼다...',
-    60:  'NASA 살려줘...',
-    70:  '별이 참 많다...',
-    80:  '지구가 그립다...',
+    10:  '우주에도 출근이 있다',
+    20:  '이 커피 무중력에서 마시는 법',
+    30:  '헬멧 안이 좀 답답하다',
+    40:  '별이 많다',
+    50:  '반은 걸은 건가',
+    60:  '발밑이 좀 이상하다',
+    70:  '점심은 튜브식이겠지',
+    80:  '기지가 보이려나',
     100: '100m 돌파!!',
-    120: '외계인인가...?',
+    120: '지구가 작게 보인다',
     150: '거의 다 왔다!!',
   },
   // ===== 우주 - 베테랑 (화성~천왕성) =====
   'space-veteran': {
-    10:  '오늘도 탐사다...',
-    20:  '중력이 이상해...',
-    30:  '깃발 또 꽂으러 가자',
-    40:  '이 행성은 처음이네...',
-    50:  '교신이 끊겼다...',
-    60:  '관제센터 응답해...',
-    70:  '별이 참 많다...',
-    80:  '지구는 까먹었다...',
+    10:  '오늘도 탐사다',
+    20:  '이 행성 중력은 좀 다르다',
+    30:  '깃발 하나 더 꽂으러 간다',
+    40:  '지평선이 휘어져 있다',
+    50:  '반은 왔다',
+    60:  '교신 상태 양호',
+    70:  '점심은 3번 튜브로',
+    80:  '기지 불빛이 보이려나',
     100: '100m 돌파!!',
-    120: '외계문명의 흔적인가...?',
+    120: '지구는 이제 점이다',
     150: '거의 다 왔다!!',
   },
 };
 
-// Fallback pool used for milestones not defined in the current rank group's set
-const SPEECH_FALLBACK_POOL = Object.values(GROUP_SPEECHES['company-junior']);
+// Rank-specific speech variable substitutions
+const RANK_SPEECH_VARS: Record<string, Record<string, string>> = {
+  mawang: { rankName: '마왕', building: '마왕성 첨탑이', enemy: '용사' },
+  sin:    { rankName: '신', building: '신전이', enemy: '도전자' },
+};
+
+// Fallback: pick from the current group's speeches (not always company-junior)
+function getSpeechFallback(group: RankGroup): string {
+  const pool = Object.values(GROUP_SPEECHES[group]);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function easeInOut(t: number): number {
   return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
@@ -260,6 +270,15 @@ export const GameScreen: React.FC = () => {
   const bestDistRef = useRef(bestDistance);
   bestDistRef.current = bestDistance;
 
+  // Item store
+  const { coffeeCount, resetRunFlags, consumeCoffee } = useItemStore();
+  const coffeeCountRef    = useRef(coffeeCount);
+  coffeeCountRef.current  = coffeeCount;
+  const consumeCoffeeRef  = useRef(consumeCoffee);
+  consumeCoffeeRef.current = consumeCoffee;
+  const resetRunFlagsRef  = useRef(resetRunFlags);
+  resetRunFlagsRef.current = resetRunFlags;
+
   // Stage store
   const { currentDay, stageBaseDistance, difficultyMultiplier, advanceStage, resetStage, totalCompletedDays, loopCount } = useStageStore();
   const stageBaseDistRef = useRef(stageBaseDistance);
@@ -289,6 +308,13 @@ export const GameScreen: React.FC = () => {
   setDistanceRef.current    = setDistance;
   setIsNewRecordRef.current = setIsNewRecord;
   submitRecordRef.current   = submitRecord;
+
+  // Coffee item refs
+  const coffeeHudRef          = useRef<HTMLDivElement>(null);
+  const coffeeShieldBarRef    = useRef<HTMLDivElement>(null);
+  const coffeeShieldFillRef   = useRef<HTMLDivElement>(null);
+  const coffeeEffectRef       = useRef<HTMLDivElement>(null);
+  const coffeeEffectTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // HUD refs (avoid re-renders)
   const distanceTopRef   = useRef<HTMLSpanElement>(null);
@@ -345,6 +371,40 @@ export const GameScreen: React.FC = () => {
     }, 2000);
   }, []);
 
+  const showCoffeeEffect = useCallback(() => {
+    const el = coffeeEffectRef.current;
+    if (!el) return;
+
+    if (coffeeEffectTimerRef.current) clearTimeout(coffeeEffectTimerRef.current);
+
+    el.classList.remove('coffee-effect-fadeout');
+    el.classList.add('coffee-effect-visible');
+
+    coffeeEffectTimerRef.current = setTimeout(() => {
+      el.classList.add('coffee-effect-fadeout');
+      coffeeEffectTimerRef.current = setTimeout(() => {
+        el.classList.remove('coffee-effect-visible', 'coffee-effect-fadeout');
+      }, 400);
+    }, 800);
+  }, []);
+
+  const updateCoffeeHUD = useCallback((
+    shieldActive: boolean,
+    shieldRemaining: number,
+    shieldTotal: number,
+  ) => {
+    if (coffeeHudRef.current) {
+      coffeeHudRef.current.textContent = `☕ x${coffeeCountRef.current}`;
+    }
+    if (coffeeShieldBarRef.current) {
+      coffeeShieldBarRef.current.style.display = shieldActive ? 'block' : 'none';
+    }
+    if (coffeeShieldFillRef.current && shieldActive) {
+      const ratio = Math.max(0, shieldRemaining / shieldTotal);
+      coffeeShieldFillRef.current.style.width = `${ratio * 100}%`;
+    }
+  }, []);
+
   const updateHUD = useCallback((
     distance: number,
     isDangerous: boolean,
@@ -395,15 +455,21 @@ export const GameScreen: React.FC = () => {
       }
     }
 
-    // Speech bubble milestone check
-    const milestone = Math.floor(distance / 10) * 10;
+    // Speech bubble milestone check (스테이지 내 상대 거리 기준)
+    const stageDistance = distance - stageBaseDistRef.current;
+    const milestone = Math.floor(stageDistance / 10) * 10;
     if (milestone > 0 && milestone !== lastMilestoneRef.current) {
       lastMilestoneRef.current = milestone;
       const currentRank = getRankForDays(useStageStore.getState().totalCompletedDays);
       const group = getRankGroup(currentRank.id);
       const groupMessages = GROUP_SPEECHES[group];
-      const message = groupMessages?.[milestone]
-        ?? SPEECH_FALLBACK_POOL[Math.floor(Math.random() * SPEECH_FALLBACK_POOL.length)];
+      let message = groupMessages?.[milestone]
+        ?? getSpeechFallback(group);
+      // Replace rank-specific placeholders like {rankName}, {building}
+      const vars = RANK_SPEECH_VARS[currentRank.id];
+      if (vars && message) {
+        message = message.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? _);
+      }
       if (message) showSpeechBubble(message);
     }
   }, [showSpeechBubble]);
@@ -422,6 +488,9 @@ export const GameScreen: React.FC = () => {
     background.reset();
     followerManager.reset();
     gameOverFiredRef.current = false;
+
+    // 판 시작 시 커피 사용 플래그 초기화
+    resetRunFlagsRef.current();
 
     // Apply theme for the current stage
     const initialTheme = getThemeForDays(useStageStore.getState().totalCompletedDays);
@@ -493,7 +562,7 @@ export const GameScreen: React.FC = () => {
     eventManager.setUnlockedEvents(unlockedEvents);
     eventManager.setIntensityMultiplier(Math.pow(1.5, effectiveState.loopCount));
 
-    followerManager.setupForStage(effectiveState.stageBaseDistance, effectiveState.currentDay);
+    followerManager.setupForStage(effectiveState.stageBaseDistance, effectiveState.currentDay, effectiveState.totalCompletedDays);
     stageClearedRef.current = false;
 
     if (containerRef.current) {
@@ -573,7 +642,7 @@ export const GameScreen: React.FC = () => {
 
           const newStageState = useStageStore.getState();
           physics.setStageMultiplier(newStageState.difficultyMultiplier);
-          followerManager.setupForStage(newStageState.stageBaseDistance, newStageState.currentDay);
+          followerManager.setupForStage(newStageState.stageBaseDistance, newStageState.currentDay, newStageState.totalCompletedDays);
 
           // Switch background theme if the world changed
           const newTheme = getThemeForDays(newStageState.totalCompletedDays);
@@ -626,6 +695,24 @@ export const GameScreen: React.FC = () => {
       const eventFrame = eventManager.update(deltaTime, physics.getState().distance);
       physics.setEventFrame(eventFrame);
 
+      // Coffee auto-activation: 위험 상태 + 커피 보유 + 미사용 시 자동 발동
+      if (
+        physics.isDangerous() &&
+        !physics.isCoffeeShieldActive() &&
+        coffeeCountRef.current > 0 &&
+        !useItemStore.getState().coffeeUsedThisRun
+      ) {
+        const consumed = consumeCoffeeRef.current();
+        if (consumed) {
+          physics.activateCoffeeShield(20);
+          showCoffeeEffect();
+          // 커피 HUD 즉시 갱신
+          if (coffeeHudRef.current) {
+            coffeeHudRef.current.textContent = `☕ x${useItemStore.getState().coffeeCount}`;
+          }
+        }
+      }
+
       physics.update(deltaTime, dir);
 
       const state = physics.getState();
@@ -664,6 +751,12 @@ export const GameScreen: React.FC = () => {
         state.distance,
         physics.isDangerous(),
         eventManager,
+      );
+
+      updateCoffeeHUD(
+        physics.isCoffeeShieldActive(),
+        physics.getCoffeeShieldRemaining(),
+        20,
       );
 
       if (state.isGameOver && !gameOverFiredRef.current) {
@@ -726,9 +819,10 @@ export const GameScreen: React.FC = () => {
       if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
       if (gameOverTimerRef.current) clearTimeout(gameOverTimerRef.current);
       if (bumpHideTimerRef.current) clearTimeout(bumpHideTimerRef.current);
+      if (coffeeEffectTimerRef.current) clearTimeout(coffeeEffectTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setupCanvas, updateHUD]);
+  }, [setupCanvas, updateHUD, updateCoffeeHUD, showCoffeeEffect]);
 
   const handleStageTransitionComplete = useCallback(() => {
     stageClearedRef.current = false;
@@ -804,6 +898,21 @@ export const GameScreen: React.FC = () => {
         <div className="event-indicator event-indicator--wind" ref={windIndicatorRef} style={{ display: 'none' }} />
         <div className="event-indicator event-indicator--slope" ref={slopeIndicatorRef} style={{ display: 'none' }} />
         <div className="event-indicator event-indicator--bump" ref={bumpIndicatorRef} style={{ display: 'none' }}>💥 부딪힘!</div>
+      </div>
+
+      {/* Coffee HUD */}
+      <div className="coffee-hud" ref={coffeeHudRef}>
+        ☕ x{coffeeCount}
+      </div>
+
+      {/* Coffee effect overlay */}
+      <div className="coffee-effect" ref={coffeeEffectRef}>
+        ☕ 원샷!
+      </div>
+
+      {/* Coffee shield bar */}
+      <div className="coffee-shield-bar" ref={coffeeShieldBarRef} style={{ display: 'none' }}>
+        <div className="coffee-shield-bar__fill" ref={coffeeShieldFillRef} />
       </div>
 
       {/* Danger overlay */}
