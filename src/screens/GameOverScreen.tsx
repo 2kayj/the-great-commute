@@ -25,7 +25,7 @@ export const GameOverScreen: React.FC = () => {
   const { distance, isNewRecord, setPhase } = useGameStore();
   const { bestDistance, bestDay, bestTotalDays } = useRecordStore();
   const { currentDay, usedContinue, continueFromCurrentDay, resetStage, totalCompletedDays, loopCount } = useStageStore();
-  const { incrementPlayCount, shouldShowInterstitial } = useAdStore();
+  useAdStore();
 
   const currentRank = getRankForDays(totalCompletedDays);
   const bestRank = getRankForDays(bestTotalDays);

@@ -1,6 +1,6 @@
 import { getRankForDays } from '../../data/rankTable';
 import type { BackgroundTheme } from './BackgroundTheme';
-import { makeCompanyTheme, CompanyTheme } from './CompanyTheme';
+import { makeCompanyTheme } from './CompanyTheme';
 import { PoliticsTheme } from './PoliticsTheme';
 import { IsekaiTheme } from './IsekaiTheme';
 import { makeSpaceTheme, type SpacePlanet } from './SpaceTheme';

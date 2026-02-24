@@ -18,7 +18,7 @@ import type { CutsceneType } from './CutsceneScreen';
 import { getRankForDays, RANK_TABLE, LOOP_CYCLE_DAYS } from '../data/rankTable';
 import { getThemeForDays } from '../engine/themes';
 import type { BackgroundTheme } from '../engine/themes';
-import type { RankDef, EventType, WorldPhase } from '../types/rank.types';
+import type { RankDef, EventType } from '../types/rank.types';
 import './GameScreen.css';
 
 type RankGroup =
