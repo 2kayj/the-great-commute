@@ -5,7 +5,50 @@ import { useStageStore } from '../store/stageStore';
 import { useAdStore } from '../store/adStore';
 import { AdOverlay } from './AdOverlay';
 import { getRankForDays } from '../data/rankTable';
+import type { WorldPhase } from '../types/rank.types';
 import './GameOverScreen.css';
+
+const WORLD_GAMEOVER_MESSAGES: Record<WorldPhase, {
+  fallen: string;
+  headline: string;
+  sub: string;
+  compareLess: string;
+  compareNew: string;
+  compareSame: string;
+}> = {
+  company: {
+    fallen: '...그냥 누울래요',
+    headline: '출근 {day}에 실패했어요...',
+    sub: '다시 도전해봐요! 지각보다는 낫잖아요... 아마도?',
+    compareLess: '조금만 더 균형을 잡아보면 될 것 같은데...',
+    compareNew: '더 멀리 갈 수 있을 것 같은데요?',
+    compareSame: '어제의 나와 똑같이 싸웠네요. 오늘은 한 발 더!',
+  },
+  politics: {
+    fallen: '...그냥 기권할래요',
+    headline: '출정 {day}에 실패했어요...',
+    sub: '다시 도전해봐요! 국민은 여러분의 재도전을 기다리고 있어요!',
+    compareLess: '국민이 지켜보고 있어요! 조금만 더...',
+    compareNew: '역대급 기록! 더 높이 올라갈 수 있어요!',
+    compareSame: '현상 유지도 전략이지만, 더 높이 가봐요!',
+  },
+  isekai: {
+    fallen: '...그냥 부활 포기할래요',
+    headline: '모험 {day}에 쓰러졌어요...',
+    sub: '다시 도전해봐요! 전설은 포기하지 않아요!',
+    compareLess: '조금만 더 버티면 마왕성까지 갈 수 있을 텐데...',
+    compareNew: '전설적인 기록! 더 먼 던전이 기다려요!',
+    compareSame: '같은 던전에서 또 쓰러졌군요. 레벨업이 필요해요!',
+  },
+  space: {
+    fallen: '...그냥 우주에 떠다닐래요',
+    headline: '탐사 {day}에 실패했어요...',
+    sub: '다시 도전해봐요! 우주는 도전하는 자의 것!',
+    compareLess: '조금만 더 가면 새로운 행성에 도착할 텐데...',
+    compareNew: '우주 신기록! 더 먼 은하가 기다려요!',
+    compareSame: '같은 좌표에서 멈췄군요. 항로를 수정해봐요!',
+  },
+};
 
 const DAY_LABELS: Record<number, string> = {
   1: '첫째날',
@@ -29,6 +72,7 @@ export const GameOverScreen: React.FC = () => {
 
   const currentRank = getRankForDays(totalCompletedDays);
   const bestRank = getRankForDays(bestTotalDays);
+  const worldMsgs = WORLD_GAMEOVER_MESSAGES[currentRank.world as WorldPhase] ?? WORLD_GAMEOVER_MESSAGES.company;
   const loopStars = loopCount > 0 ? '★'.repeat(loopCount) + ' ' : '';
   const [showingRewardedAd, setShowingRewardedAd] = useState(false);
   const [showingInterstitialAd, setShowingInterstitialAd] = useState(false);
@@ -44,7 +88,7 @@ export const GameOverScreen: React.FC = () => {
   const handleRewardedAdComplete = (success: boolean) => {
     setShowingRewardedAd(false);
     if (success) {
-      continueFromCurrentDay();
+      continueFromCurrentDay(distance);
       setPhase('playing');
     }
   };
@@ -104,14 +148,14 @@ export const GameOverScreen: React.FC = () => {
           </svg>
         </div>
 
-        <div className="aigo-text">...그냥 누울래요</div>
+        <div className="aigo-text">{worldMsgs.fallen}</div>
       </div>
 
       {/* Bottom */}
       <div className="go-bottom">
         <div className="go-title">
-          <div className="go-headline">{loopStars}출근 {getDayLabel(currentDay)}에 실패했어요...</div>
-          <div className="go-sub">다시 도전해봐요! 신입이 안오면 당신이 막내예요!</div>
+          <div className="go-headline">{loopStars}{worldMsgs.headline.replace('{day}', getDayLabel(currentDay))}</div>
+          <div className="go-sub">{worldMsgs.sub}</div>
         </div>
 
         <div className="result-box">
@@ -137,19 +181,19 @@ export const GameOverScreen: React.FC = () => {
             <div className="compare-text">
               최고기록까지 <span className="highlight">{diff}m</span> 부족해요!
               <br />
-              조금만 더 균형을 잡아보면 될 것 같은데...
+              {worldMsgs.compareLess}
             </div>
           ) : isNewRecord ? (
             <div className="compare-text">
               신기록 달성! <span className="highlight">대단해요!</span>
               <br />
-              더 멀리 갈 수 있을 것 같은데요?
+              {worldMsgs.compareNew}
             </div>
           ) : (
             <div className="compare-text">
               오늘은 최고 기록과 <span className="highlight">동일</span>해요!
               <br />
-              포기하지 말고 다시 도전!
+              {worldMsgs.compareSame}
             </div>
           )}
         </div>

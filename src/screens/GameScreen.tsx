@@ -500,8 +500,11 @@ export const GameScreen: React.FC = () => {
 
     // Setup for current stage
     const stageState = useStageStore.getState();
-    if (stageState.stageBaseDistance > 0) {
-      // Resume from current Day's start point (covers both continue and fresh page load)
+    if (stageState.usedContinue && stageState.continueDistance > 0) {
+      // Continue from the exact distance where the player died
+      physics.resetForContinue(stageState.continueDistance, stageState.difficultyMultiplier);
+    } else if (stageState.stageBaseDistance > 0) {
+      // Resume from current Day's start point (fresh page load mid-run)
       physics.resetForContinue(stageState.stageBaseDistance, stageState.difficultyMultiplier);
     } else {
       // Day 1: reset everything
@@ -545,8 +548,10 @@ export const GameScreen: React.FC = () => {
     const initialDampingPenalty = (initialRankDef.speedMultiplier - 1.0) * 0.045;
     physics.setRankDampingPenalty(initialDampingPenalty);
 
-    // Apply held item for the current rank
+    // Apply held item and world hat for the current rank
     character.setItem(initialRankDef.item);
+    character.setWorld(initialRankDef.world);
+    character.setRankId(initialRankDef.id);
 
     // Setup EventManager for current rank progression
     eventManager.reset();
@@ -650,6 +655,8 @@ export const GameScreen: React.FC = () => {
           // Check if rank changed
           const rankAfter = getRankForDays(newStageState.totalCompletedDays);
           character.setItem(rankAfter.item);
+          character.setWorld(rankAfter.world);
+          character.setRankId(rankAfter.id);
 
           // Update rank-based speed multiplier and damping penalty after advancing
           const newEffectiveSpeedMult = rankAfter.speedMultiplier * (1 + newStageState.loopCount * 0.1);

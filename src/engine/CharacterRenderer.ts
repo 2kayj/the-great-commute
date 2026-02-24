@@ -1,7 +1,7 @@
 import { VerletChain } from './VerletChain';
 import { COLORS, LEG_UPPER, LEG_LOWER, STEP_HEIGHT } from '../utils/constants';
 import { wobbleOffset } from '../utils/math';
-import type { CharacterItem } from '../types/rank.types';
+import type { CharacterItem, WorldPhase } from '../types/rank.types';
 
 // ----- Footplant IK types -----
 
@@ -35,6 +35,11 @@ export class CharacterRenderer {
   private rightArm: VerletChain;
   private time: number = 0;
   private currentItem: CharacterItem = 'coffee';
+  private currentWorld: WorldPhase = 'company';
+  private currentRankId: string = 'sinip';
+
+  // Devil tail for mawang rank
+  private tail: VerletChain;
 
   // IK + Verlet hybrid legs
   private leftLegChain: VerletChain;
@@ -60,6 +65,8 @@ export class CharacterRenderer {
   constructor() {
     this.leftArm  = new VerletChain(4, 10, 0.3, 0.96);
     this.rightArm = new VerletChain(4, 10, 0.3, 0.96);
+    // Tail: 5 nodes, 7px segments, upward gravity so tip curls up
+    this.tail = new VerletChain(5, 7, 0.15, 0.92, -1, 8);
 
     // Leg chains: 4 nodes, gravity pulls down slightly, high damping for slow wobble
     // gravityDir = +1 (downward). gravity value is modest so legs don't droop too much.
@@ -254,6 +261,13 @@ export class CharacterRenderer {
 
     this.updateLegChain(this.leftLegChain,  leftHipX,  hipY, this.leftFoot);
     this.updateLegChain(this.rightLegChain, rightHipX, hipY, this.rightFoot);
+
+    // Devil tail: anchor at the back of the hip (slightly left = behind character)
+    if (this.currentRankId === 'mawang') {
+      const tailAnchorX = hipX - this.bodyW * 0.6;
+      const tailAnchorY = hipY - 4;
+      this.tail.update(tailAnchorX, tailAnchorY);
+    }
   }
 
   /**
@@ -341,6 +355,11 @@ export class CharacterRenderer {
     const bodyBobY  = Math.abs(Math.sin(walkPhase)) * -4;
     const bx = centerX + bodySwayX;
     const by = bodyTopY + bodyBobY;
+
+    // Devil tail (behind body and legs)
+    if (this.currentRankId === 'mawang') {
+      this.renderDevilTail(ctx);
+    }
 
     // ----- Render hybrid Verlet legs (behind body) -----
     this.renderVerletLeg(ctx, this.leftLegChain);
@@ -464,6 +483,64 @@ export class CharacterRenderer {
     ctx.restore();
   }
 
+  private renderDevilTail(ctx: CanvasRenderingContext2D): void {
+    const nodes = this.tail.nodes;
+    if (nodes.length < 2) return;
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Draw curved tail body: thicker at base, tapers toward tip
+    ctx.strokeStyle = '#8B0000';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(nodes[0].x, nodes[0].y);
+    if (nodes.length >= 3) {
+      // Use quadraticCurveTo through midpoints for smooth curve
+      ctx.quadraticCurveTo(nodes[1].x, nodes[1].y, (nodes[1].x + nodes[2].x) / 2, (nodes[1].y + nodes[2].y) / 2);
+      ctx.stroke();
+
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo((nodes[1].x + nodes[2].x) / 2, (nodes[1].y + nodes[2].y) / 2);
+      ctx.quadraticCurveTo(nodes[2].x, nodes[2].y, nodes[nodes.length - 1].x, nodes[nodes.length - 1].y);
+      ctx.stroke();
+    } else {
+      ctx.lineTo(nodes[nodes.length - 1].x, nodes[nodes.length - 1].y);
+      ctx.stroke();
+    }
+
+    // Arrow-tip (devil tail spade shape) at the last node
+    const tip = nodes[nodes.length - 1];
+    const prev = nodes[nodes.length - 2];
+    const dx = tip.x - prev.x;
+    const dy = tip.y - prev.y;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    // Direction unit vector (tail direction)
+    const ux = dx / len;
+    const uy = dy / len;
+    // Perpendicular
+    const px = -uy;
+    const py = ux;
+
+    const arrowLen = 7;
+    const arrowHalf = 4;
+
+    ctx.fillStyle = '#8B0000';
+    ctx.strokeStyle = '#8B0000';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(tip.x + ux * arrowLen, tip.y + uy * arrowLen);
+    ctx.lineTo(tip.x + px * arrowHalf - ux * 2, tip.y + py * arrowHalf - uy * 2);
+    ctx.lineTo(tip.x, tip.y);
+    ctx.lineTo(tip.x - px * arrowHalf - ux * 2, tip.y - py * arrowHalf - uy * 2);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+
   private renderHead(
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -482,6 +559,11 @@ export class CharacterRenderer {
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
+
+    // Hat is drawn after head circle so it overlaps the head correctly.
+    // Space helmet is drawn here (before eyes/beak) so the visor is rendered
+    // underneath the face features, making eyes/beak visible through the visor.
+    this.renderHat(ctx, x, y);
 
     const eyeWobbleX  = fallen ? 0 : wobbleOffset(12, t, 0.5);
     const eyeWobbleX2 = fallen ? 0 : wobbleOffset(13, t, 0.5);
@@ -553,12 +635,224 @@ export class CharacterRenderer {
     this.currentItem = item;
   }
 
+  setWorld(world: WorldPhase): void {
+    this.currentWorld = world;
+  }
+
+  setRankId(id: string): void {
+    this.currentRankId = id;
+  }
+
   private renderItem(ctx: CanvasRenderingContext2D): void {
     switch (this.currentItem) {
       case 'coffee': this.renderCoffeeTray(ctx); break;
       case 'sword':  this.renderSword(ctx);       break;
       case 'flag':   this.renderFlag(ctx);        break;
     }
+  }
+
+  private renderHat(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    const r = this.headR;
+    // sin rank: halo instead of horned helmet
+    if (this.currentRankId === 'sin') {
+      this.renderHalo(ctx, x, y, r);
+      return;
+    }
+    switch (this.currentWorld) {
+      case 'company': break;
+      case 'politics': this.renderBeret(ctx, x, y, r); break;
+      case 'isekai':   this.renderHornedHelmet(ctx, x, y, r); break;
+      case 'space':    this.renderSpaceHelmet(ctx, x, y, r); break;
+    }
+  }
+
+  private renderHalo(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = 'rgba(255, 215, 0, 0.7)';
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 2.5;
+    const haloY = y - r * 1.8 + Math.sin(this.time * 2) * 1.5;
+    ctx.beginPath();
+    ctx.ellipse(x, haloY, r * 0.95, r * 0.28, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner glow ring (lighter, thinner)
+    ctx.globalAlpha = 0.4;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#FFFACD';
+    ctx.shadowBlur = 4;
+    ctx.beginPath();
+    ctx.ellipse(x, haloY, r * 0.95, r * 0.28, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  private renderBeret(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+    ctx.save();
+
+    const rimY = y - r * 0.5;  // 눈(y-3) 위로 올림
+
+    // Headband (rim at bottom of beret)
+    ctx.strokeStyle = '#1C1C3A';
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(x, rimY, r * 0.95, Math.PI, Math.PI * 2);
+    ctx.stroke();
+
+    // Beret dome — slightly tilted right
+    ctx.fillStyle = '#1C1C3A';
+    ctx.strokeStyle = '#1C1C3A';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.9, rimY);
+    ctx.bezierCurveTo(
+      x - r * 1.1, rimY - r * 1.1,
+      x + r * 0.6, rimY - r * 1.3,
+      x + r * 1.1, rimY - r * 0.25
+    );
+    ctx.bezierCurveTo(
+      x + r * 1.2, rimY + r * 0.1,
+      x + r * 0.1, rimY + r * 0.05,
+      x - r * 0.9, rimY
+    );
+    ctx.fill();
+    ctx.stroke();
+
+    // Small circle decoration at top
+    ctx.fillStyle = '#3A3A6A';
+    ctx.strokeStyle = '#1C1C3A';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(x + r * 0.3, rimY - r * 1.0, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  private renderHornedHelmet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+    ctx.save();
+
+    const rimY = y - r * 0.55;  // 눈(y-3) 위로 올림
+
+    // Left horn (drawn first so dome covers the base)
+    ctx.strokeStyle = '#B0B0B8';
+    ctx.fillStyle = '#B0B0B8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.6, rimY - r * 0.1);
+    ctx.quadraticCurveTo(
+      x - r * 1.5, rimY - r * 0.7,
+      x - r * 1.2, rimY - r * 1.4
+    );
+    ctx.quadraticCurveTo(
+      x - r * 1.0, rimY - r * 1.3,
+      x - r * 0.5, rimY - r * 0.2
+    );
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Right horn
+    ctx.beginPath();
+    ctx.moveTo(x + r * 0.6, rimY - r * 0.1);
+    ctx.quadraticCurveTo(
+      x + r * 1.5, rimY - r * 0.7,
+      x + r * 1.2, rimY - r * 1.4
+    );
+    ctx.quadraticCurveTo(
+      x + r * 1.0, rimY - r * 1.3,
+      x + r * 0.5, rimY - r * 0.2
+    );
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Helmet dome (covers horn bases)
+    ctx.fillStyle = '#C8C8D0';
+    ctx.strokeStyle = '#222222';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, rimY, r * 1.1, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Bottom rim/brim
+    ctx.strokeStyle = '#222222';
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - r * 1.25, rimY);
+    ctx.lineTo(x + r * 1.25, rimY);
+    ctx.stroke();
+
+    // Highlight on upper-left of dome
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(x - r * 0.35, rimY - r * 0.55, r * 0.45, Math.PI * 1.2, Math.PI * 1.7);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  private renderSpaceHelmet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+    ctx.save();
+
+    // Outer helmet shell (white, slightly larger than head)
+    const hr = r * 1.55;
+    ctx.fillStyle = '#F0F0F0';
+    ctx.strokeStyle = '#222222';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(x, y, hr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Visor — semi-transparent sky blue ellipse
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = '#7EC8E3';
+    ctx.beginPath();
+    ctx.ellipse(x, y + r * 0.1, r * 0.95, r * 0.75, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Visor border
+    ctx.strokeStyle = '#3A8BAA';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, y + r * 0.1, r * 0.95, r * 0.75, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Reflection arc on upper-left
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(x - r * 0.45, y - r * 0.5, r * 0.55, Math.PI * 1.1, Math.PI * 1.6);
+    ctx.stroke();
+
+    // Small reflection dot
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    ctx.arc(x - r * 0.75, y - r * 0.7, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Neck ring at bottom
+    ctx.strokeStyle = '#AAAAAA';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(x, y, hr, Math.PI * 0.2, Math.PI * 0.8);
+    ctx.stroke();
+
+    ctx.restore();
   }
 
   private renderSword(ctx: CanvasRenderingContext2D): void {
@@ -593,15 +887,18 @@ export class CharacterRenderer {
     ctx.fill();
     ctx.stroke();
 
-    // Blade — extends upward from cross-guard
+    // Blade — extends upward from cross-guard, rounded tip
     ctx.fillStyle = '#C0C0C0';
     ctx.strokeStyle = COLORS.line;
     ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(-3, -4);
     ctx.lineTo(3, -4);
-    ctx.lineTo(wobbleOffset(22, this.time, 0.5), -32);
-    ctx.closePath();
+    const tipX = wobbleOffset(22, this.time, 0.5);
+    ctx.quadraticCurveTo(3, -28, tipX, -32);
+    ctx.quadraticCurveTo(-3, -28, -3, -4);
     ctx.fill();
     ctx.stroke();
 

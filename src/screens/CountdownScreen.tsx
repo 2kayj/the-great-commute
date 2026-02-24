@@ -132,6 +132,8 @@ export const CountdownScreen: React.FC = () => {
     bg.setTheme(theme);
     const rank = getRankForDays(totalDays);
     char.setItem(rank.item);
+    char.setWorld(rank.world);
+    char.setRankId(rank.id);
 
     physics.reset();
 
