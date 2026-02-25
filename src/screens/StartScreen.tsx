@@ -5,8 +5,6 @@ import { useStageStore } from '../store/stageStore';
 import { CharacterRenderer } from '../engine/CharacterRenderer';
 import { BackgroundRenderer } from '../engine/BackgroundRenderer';
 import {
-  CANVAS_WIDTH,
-  CANVAS_HEIGHT,
   GROUND_Y,
   CHARACTER_X,
 } from '../utils/constants';
