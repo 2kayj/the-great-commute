@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useRecordStore } from '../store/recordStore';
 import { useStageStore } from '../store/stageStore';
@@ -81,6 +81,21 @@ export const GameOverScreen: React.FC = () => {
   const current = Math.floor(distance);
   const best    = bestDistance;
   const diff    = best - current;
+
+  // 신기록 달성 시 토스 리더보드에 점수 제출 (fire-and-forget)
+  useEffect(() => {
+    if (isNewRecord && platform.PLATFORM === 'toss' && platform.submitScore) {
+      platform.submitScore(Math.floor(bestDistance)).catch((e) => {
+        console.warn('[gameover] 리더보드 점수 제출 실패:', e);
+      });
+    }
+  }, [isNewRecord, bestDistance]);
+
+  const handleOpenLeaderboard = () => {
+    platform.openLeaderboard?.().catch((e) => {
+      console.warn('[gameover] 리더보드 열기 실패:', e);
+    });
+  };
 
   const handleContinue = async () => {
     if (platform.PLATFORM === 'toss') {
@@ -230,6 +245,11 @@ export const GameOverScreen: React.FC = () => {
             <button className="btn-secondary" onClick={handleHome}>
               홈으로
             </button>
+            {platform.PLATFORM === 'toss' && (
+              <button className="btn-secondary btn-leaderboard" onClick={handleOpenLeaderboard}>
+                순위 보기
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@
  * - 배포: 앱인토스
  */
 import { GoogleAdMob, IAP } from '@apps-in-toss/web-framework';
+import { submitGameCenterLeaderBoardScore, openGameCenterLeaderboard } from '@apps-in-toss/web-bridge';
 
 export const PLATFORM = 'toss' as const;
 
@@ -175,5 +176,23 @@ export async function restorePendingPurchases(): Promise<void> {
     }
   } catch (e) {
     console.warn('[toss] 미지급 주문 복원 실패:', e);
+  }
+}
+
+export async function submitScore(score: number): Promise<boolean> {
+  try {
+    const result = await submitGameCenterLeaderBoardScore({ score: String(score) });
+    return result?.statusCode === 'SUCCESS';
+  } catch (e) {
+    console.warn('[toss] 리더보드 점수 제출 실패:', e);
+    return false;
+  }
+}
+
+export async function openLeaderboard(): Promise<void> {
+  try {
+    await openGameCenterLeaderboard();
+  } catch (e) {
+    console.warn('[toss] 리더보드 열기 실패:', e);
   }
 }

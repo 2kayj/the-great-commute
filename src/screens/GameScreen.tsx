@@ -41,8 +41,8 @@ function getRankGroup(rankId: string): RankGroup {
     // 회사 - 관리직 (팀장/부장)
     case 'timjang': case 'bujang':
       return 'company-manager';
-    // 회사 - 임원 (상무/사장)
-    case 'sangmu': case 'sajang':
+    // 회사 - 임원 (상무)
+    case 'sangmu':
       return 'company-exec';
     // 정치 - 재벌 (회장/총수)
     case 'hoejang': case 'chongsu':
@@ -53,8 +53,8 @@ function getRankGroup(rankId: string): RankGroup {
     // 이세계 - 초보 (신입용사/기사)
     case 'yongsa': case 'gisa':
       return 'isekai-beginner';
-    // 이세계 - 실력자 (마법사/영웅)
-    case 'mabeopsa': case 'yeongung':
+    // 이세계 - 실력자 (마법사/현자/영웅)
+    case 'mabeopsa': case 'hyeonja': case 'yeongung':
       return 'isekai-skilled';
     // 이세계 - 최강 (마왕/신)
     case 'mawang': case 'sin':

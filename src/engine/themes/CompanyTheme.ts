@@ -35,16 +35,6 @@ const SNOW_FLAKES = Array.from({ length: 18 }, () => ({
   swayAmp: 12 + rngSnow() * 14,
 }));
 
-// Stars for sajang (야경)
-const rngStar = seededRandom(83);
-const NIGHT_STARS = Array.from({ length: 45 }, () => ({
-  x: rngStar() * CANVAS_WIDTH,
-  y: rngStar() * (GROUND_Y * 0.65),
-  r: 0.6 + rngStar() * 1.2,
-  twinkle: rngStar() * Math.PI * 2,
-  speed: 0.4 + rngStar() * 0.8,
-}));
-
 // ─── Helper: draw cloud ellipses ─────────────────────────────────────────────
 
 function drawClouds(
@@ -320,51 +310,9 @@ function makeSangmuTheme(): BackgroundTheme {
 
 // ─── sajang: 야경 (밤) ───────────────────────────────────────────────────────
 
-const sajangColors: ThemeColors = {
-  sky: '#1A1A2E',
-  skyGradientEnd: '#16213E',
-  ground: '#1A1A2E',
-  groundFill: '#16213E',
-  buildingFill: '#2A2A4A',
-  buildingStroke: '#8888CC',
-  windowFill: '#FFE066',
-  cloudFill: '#2A2A4A',
-  cloudStroke: '#5555AA',
-};
-
-function makeSajangTheme(): BackgroundTheme {
-  return {
-    world: 'company',
-    subTheme: 'sajang',
-    colors: sajangColors,
-
-    renderSky(ctx, _time) {
-      const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-      grad.addColorStop(0, '#1A1A2E');
-      grad.addColorStop(1, '#16213E');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    },
-
-    renderExtraBack(ctx, time) {
-      // Twinkling stars
-      ctx.save();
-      for (const s of NIGHT_STARS) {
-        const brightness = 0.35 + Math.sin(time * s.speed + s.twinkle) * 0.65;
-        ctx.globalAlpha = Math.max(0, brightness);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    },
-  };
-}
-
 // ─── Rank → theme ID map ─────────────────────────────────────────────────────
 
-export type CompanyRankId = 'sinip' | 'daeri' | 'gwajang' | 'timjang' | 'bujang' | 'sangmu' | 'sajang';
+export type CompanyRankId = 'sinip' | 'daeri' | 'gwajang' | 'timjang' | 'bujang' | 'sangmu';
 
 // Cache so we don't re-create theme objects every frame
 const companyThemeCache = new Map<CompanyRankId, BackgroundTheme>();
@@ -383,7 +331,6 @@ export function makeCompanyTheme(rankId: string): BackgroundTheme {
     case 'timjang': theme = makeTimjangTheme(); break;
     case 'bujang':  theme = makeBujangTheme();  break;
     case 'sangmu':  theme = makeSangmuTheme();  break;
-    case 'sajang':  theme = makeSajangTheme();  break;
     default:        theme = makeSinipTheme();   break;
   }
 

@@ -35,3 +35,12 @@ export function showInterstitialAd(): Promise<boolean> {
 export async function restorePendingPurchases(): Promise<void> {
   console.log('[store] IAP 미지급 복원');
 }
+
+// 리더보드 미지원 (스토어 플랫폼)
+export async function submitScore(_score: number): Promise<boolean> {
+  return false;
+}
+
+export async function openLeaderboard(): Promise<void> {
+  // no-op
+}

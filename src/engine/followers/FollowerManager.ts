@@ -29,11 +29,11 @@ import {
 } from './space';
 
 // 월드 경계 (totalCompletedDays 기준)
-// 0~20일: 회사, 21~37일: 정치, 38~63일: 이세계, 64~89일: 우주
+// 0~14일: 회사, 15~24일: 정치, 25~44일: 이세계, 45~59일: 우주
 function getWorldForDays(totalCompletedDays: number): 'company' | 'politics' | 'isekai' | 'space' {
-  if (totalCompletedDays >= 64) return 'space';
-  if (totalCompletedDays >= 38) return 'isekai';
-  return 'company'; // 0~37: 회사/정치 모두 기존 팔로워
+  if (totalCompletedDays >= 45) return 'space';
+  if (totalCompletedDays >= 25) return 'isekai';
+  return 'company'; // 0~24: 회사/정치 모두 기존 팔로워
 }
 
 function createCompanyFollowers(): BaseFollower[] {

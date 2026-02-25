@@ -11,4 +11,6 @@ export interface PlatformAdapter {
   showInterstitialAd: () => Promise<boolean>;
   purchaseCoffee: () => Promise<boolean>;
   restorePendingPurchases: () => Promise<void>;
+  submitScore?: (score: number) => Promise<boolean>;
+  openLeaderboard?: () => Promise<void>;
 }

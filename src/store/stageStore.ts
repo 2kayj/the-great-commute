@@ -61,6 +61,6 @@ export const useStageStore = create<StageStore>()(
         loopCount: 0,
       }),
     }),
-    { name: 'stage-store' },
+    { name: 'stage-store-v2' },
   ),
 );

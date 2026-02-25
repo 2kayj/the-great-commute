@@ -125,15 +125,25 @@ export class Physics {
 
   private step(dt: number, inputDirection: -1 | 0 | 1): void {
     // Zero-gravity mode: angle lerps to 0, no game-over check, no input
-    if (this.zeroGravity) {
+    // Also applies during coffee shield so the player isn't punished after it ends
+    if (this.zeroGravity || this.coffeeShield.active) {
       this.state.angle *= 0.92;
       this.state.angularVelocity *= 0.85;
 
+      // Coffee shield countdown still ticks during zero-gravity
+      if (this.coffeeShield.active) {
+        this.coffeeShield.remainingTime -= dt;
+        if (this.coffeeShield.remainingTime <= 0) {
+          this.coffeeShield = { active: false, remainingTime: 0 };
+        }
+      }
+
       // Speed, distance, walkPhase keep updating so character walks naturally
+      const coffeeBoostZG = this.coffeeShield.active ? 1.4 : 1.0;
       this.state.speed = clamp(
-        (INITIAL_SPEED + this.state.elapsedTime * SPEED_INCREMENT) * this.speedMultiplier,
+        (INITIAL_SPEED + this.state.elapsedTime * SPEED_INCREMENT) * this.speedMultiplier * coffeeBoostZG,
         INITIAL_SPEED,
-        MAX_SPEED * this.speedMultiplier
+        MAX_SPEED * this.speedMultiplier * coffeeBoostZG
       );
       this.state.distance += (this.state.speed / 100) * dt;
       this.state.elapsedTime += dt;

@@ -15,6 +15,8 @@ const adapter: PlatformAdapter = {
   showInterstitialAd: store.showInterstitialAd,
   purchaseCoffee: store.purchaseCoffee,
   restorePendingPurchases: store.restorePendingPurchases,
+  submitScore: store.submitScore,
+  openLeaderboard: store.openLeaderboard,
 };
 
 if (isToss) {
@@ -26,6 +28,8 @@ if (isToss) {
     adapter.showInterstitialAd = toss.showInterstitialAd;
     adapter.purchaseCoffee = toss.purchaseCoffee;
     adapter.restorePendingPurchases = toss.restorePendingPurchases;
+    adapter.submitScore = toss.submitScore;
+    adapter.openLeaderboard = toss.openLeaderboard;
     // 동적 로드 후 초기화
     adapter.initAds();
     adapter.restorePendingPurchases();
