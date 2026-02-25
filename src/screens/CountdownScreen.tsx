@@ -127,7 +127,12 @@ export const CountdownScreen: React.FC = () => {
     const bg      = bgRef.current;
     const physics = physicsRef.current;
 
-    const totalDays = useStageStore.getState().totalCompletedDays;
+    // Debug: honour ?startDay=N so countdown matches GameScreen
+    let totalDays = useStageStore.getState().totalCompletedDays;
+    const startDayParam = new URLSearchParams(window.location.search).get('startDay');
+    if (startDayParam) {
+      totalDays = parseInt(startDayParam, 10) || totalDays;
+    }
     const theme = getThemeForDays(totalDays);
     bg.setTheme(theme);
     const rank = getRankForDays(totalDays);
@@ -164,7 +169,9 @@ export const CountdownScreen: React.FC = () => {
   }, []);
 
   const totalCompletedDays = useStageStore(s => s.totalCompletedDays);
-  const rank = getRankForDays(totalCompletedDays);
+  const startDayOverride = new URLSearchParams(window.location.search).get('startDay');
+  const effectiveDays = startDayOverride ? (parseInt(startDayOverride, 10) || totalCompletedDays) : totalCompletedDays;
+  const rank = getRankForDays(effectiveDays);
   const worldMsgs = WORLD_MESSAGES[rank.world as WorldPhase] ?? WORLD_MESSAGES.company;
 
   const isGo = count === 'GO';
