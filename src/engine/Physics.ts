@@ -30,7 +30,7 @@ export class Physics {
   private speedMultiplier: number = 1.0;
   private zeroGravity: boolean = false;
   private invincible: boolean = false;
-  private coffeeShield: { active: boolean; remainingDistance: number } = { active: false, remainingDistance: 0 };
+  private coffeeShield: { active: boolean; remainingTime: number } = { active: false, remainingTime: 0 };
   private eventFrame: EventFrame = { bumpImpulse: 0, windTorque: 0, slopeOffset: 0 };
 
   constructor() {
@@ -58,7 +58,7 @@ export class Physics {
     this.accumulator = 0;
     this.stageMultiplier = 1.0;
     this.speedMultiplier = 1.0;
-    this.coffeeShield = { active: false, remainingDistance: 0 };
+    this.coffeeShield = { active: false, remainingTime: 0 };
   }
 
   setStageMultiplier(multiplier: number): void {
@@ -81,8 +81,8 @@ export class Physics {
     this.invincible = enabled;
   }
 
-  activateCoffeeShield(distance: number): void {
-    this.coffeeShield = { active: true, remainingDistance: distance };
+  activateCoffeeShield(duration: number): void {
+    this.coffeeShield = { active: true, remainingTime: duration };
   }
 
   isCoffeeShieldActive(): boolean {
@@ -90,7 +90,7 @@ export class Physics {
   }
 
   getCoffeeShieldRemaining(): number {
-    return this.coffeeShield.remainingDistance;
+    return this.coffeeShield.remainingTime;
   }
 
   setEventFrame(frame: EventFrame): void {
@@ -185,20 +185,20 @@ export class Physics {
       }
     }
 
-    // Coffee shield distance countdown
+    // Coffee shield time countdown
     if (this.coffeeShield.active) {
-      const distanceDelta = (this.state.speed / 100) * dt;
-      this.coffeeShield.remainingDistance -= distanceDelta;
-      if (this.coffeeShield.remainingDistance <= 0) {
-        this.coffeeShield = { active: false, remainingDistance: 0 };
+      this.coffeeShield.remainingTime -= dt;
+      if (this.coffeeShield.remainingTime <= 0) {
+        this.coffeeShield = { active: false, remainingTime: 0 };
       }
     }
 
-    // Speed ramp — scaled by rank speed multiplier
+    // Speed ramp — scaled by rank speed multiplier + coffee shield boost (1.4x)
+    const coffeeBoost = this.coffeeShield.active ? 1.4 : 1.0;
     this.state.speed = clamp(
-      (INITIAL_SPEED + this.state.elapsedTime * SPEED_INCREMENT) * this.speedMultiplier,
+      (INITIAL_SPEED + this.state.elapsedTime * SPEED_INCREMENT) * this.speedMultiplier * coffeeBoost,
       INITIAL_SPEED,
-      MAX_SPEED * this.speedMultiplier
+      MAX_SPEED * this.speedMultiplier * coffeeBoost
     );
 
     // Distance (meters, 1 meter = some pixels, scaled)

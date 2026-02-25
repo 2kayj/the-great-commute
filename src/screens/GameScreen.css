@@ -343,8 +343,25 @@
   border: 2.5px solid #222;
   border-radius: 6px;
   box-shadow: 2px 2px 0 #222;
-  overflow: hidden;
+  overflow: visible;
   pointer-events: none;
+}
+
+.coffee-shield-label {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7a5200;
+  background: rgba(255, 225, 77, 0.9);
+  padding: 3px 10px;
+  border-radius: 10px;
+  border: 2px solid #222;
+  box-shadow: 1px 1px 0 #222;
 }
 
 .coffee-shield-bar__fill {

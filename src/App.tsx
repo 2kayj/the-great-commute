@@ -1,5 +1,9 @@
 import React, { useEffect, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar } from '@capacitor/status-bar';
 import { useGameStore } from './store/gameStore';
+import { useStageStore } from './store/stageStore';
+import { getThemeForDays } from './engine/themes';
 import { StartScreen } from './screens/StartScreen';
 import { CountdownScreen } from './screens/CountdownScreen';
 import { GameScreen } from './screens/GameScreen';
@@ -7,6 +11,13 @@ import { GameOverScreen } from './screens/GameOverScreen';
 import AssetPreview from './pages/AssetPreview';
 import platform from './platform';
 import './App.css';
+
+// Hide the status bar on Android so game content fills the full screen
+if (Capacitor.isNativePlatform()) {
+  StatusBar.hide().catch(() => {
+    // Ignore errors on platforms that don't support this API
+  });
+}
 
 const DESIGN_W = 390;
 const DESIGN_H = 844;
@@ -16,6 +27,7 @@ const isPreviewMode = new URLSearchParams(window.location.search).has('preview')
 
 const App: React.FC = () => {
   const { phase } = useGameStore();
+  const { totalCompletedDays } = useStageStore();
   const gameContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,6 +37,14 @@ const App: React.FC = () => {
       platform.restorePendingPurchases();
     }
   }, []);
+
+  useEffect(() => {
+    const outerBg =
+      phase === 'ready' || phase === 'over'
+        ? '#ffffff'
+        : getThemeForDays(totalCompletedDays).colors.sky;
+    document.documentElement.style.setProperty('--outer-bg', outerBg);
+  }, [phase, totalCompletedDays]);
 
   useEffect(() => {
     if (isPreviewMode) return;

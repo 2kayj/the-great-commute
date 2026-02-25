@@ -706,7 +706,7 @@ export const GameScreen: React.FC = () => {
       ) {
         const consumed = consumeCoffeeRef.current();
         if (consumed) {
-          physics.activateCoffeeShield(20);
+          physics.activateCoffeeShield(3);
           showCoffeeEffect();
           // 커피 HUD 즉시 갱신
           if (coffeeHudRef.current) {
@@ -758,7 +758,7 @@ export const GameScreen: React.FC = () => {
       updateCoffeeHUD(
         physics.isCoffeeShieldActive(),
         physics.getCoffeeShieldRemaining(),
-        20,
+        3,
       );
 
       if (state.isGameOver && !gameOverFiredRef.current) {
@@ -914,6 +914,7 @@ export const GameScreen: React.FC = () => {
 
       {/* Coffee shield bar */}
       <div className="coffee-shield-bar" ref={coffeeShieldBarRef} style={{ display: 'none' }}>
+        <div className="coffee-shield-label">카페인 효과가 발동중입니다</div>
         <div className="coffee-shield-bar__fill" ref={coffeeShieldFillRef} />
       </div>
 
