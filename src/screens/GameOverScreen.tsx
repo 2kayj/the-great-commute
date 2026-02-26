@@ -68,7 +68,7 @@ function getDayLabel(day: number): string {
 export const GameOverScreen: React.FC = () => {
   const { distance, isNewRecord, setPhase } = useGameStore();
   const { bestDistance, bestDay, bestTotalDays } = useRecordStore();
-  const { currentDay, usedContinue, continueFromCurrentDay, resetStage, totalCompletedDays, loopCount } = useStageStore();
+  const { currentDay, usedContinue, continueFromCurrentDay, totalCompletedDays, loopCount, goHome, retryCurrentDay } = useStageStore();
   useAdStore();
 
   const currentRank = getRankForDays(totalCompletedDays);
@@ -125,10 +125,10 @@ export const GameOverScreen: React.FC = () => {
       const adStore = useAdStore.getState();
       adStore.incrementPlayCount();
       if (adStore.shouldShowInterstitial()) {
-        await platform.showInterstitialAd();
+        await platform.showInterstitialAd(); // 광고 미연동 시 결과 무시하고 게임 진행
       }
     }
-    resetStage();
+    retryCurrentDay();
     setPhase('countdown');
   };
 
@@ -138,7 +138,7 @@ export const GameOverScreen: React.FC = () => {
   };
 
   const handleHome = () => {
-    resetStage();
+    goHome();
     setPhase('ready');
   };
 

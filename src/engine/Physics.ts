@@ -28,6 +28,7 @@ export class Physics {
   private difficultyManager: DifficultyManager = new DifficultyManager();
   private stageMultiplier: number = 1.0;
   private speedMultiplier: number = 1.0;
+  private stageBaseDistance: number = 0;
   private zeroGravity: boolean = false;
   private invincible: boolean = false;
   private coffeeShield: { active: boolean; remainingTime: number } = { active: false, remainingTime: 0 };
@@ -63,6 +64,10 @@ export class Physics {
 
   setStageMultiplier(multiplier: number): void {
     this.stageMultiplier = multiplier;
+  }
+
+  setStageBaseDistance(baseDistance: number): void {
+    this.stageBaseDistance = baseDistance;
   }
 
   setSpeedMultiplier(mult: number): void {
@@ -154,9 +159,10 @@ export class Physics {
 
     const { angle } = this.state;
 
-    // Difficulty scaling based on current distance and time
+    // Difficulty scaling based on relative distance within the stage (resets each stage)
+    const relativeDistance = this.state.distance - this.stageBaseDistance;
     const diffConfig = this.difficultyManager.getConfig(
-      this.state.distance,
+      relativeDistance,
       this.state.elapsedTime
     );
 

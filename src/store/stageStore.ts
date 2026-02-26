@@ -15,6 +15,8 @@ interface StageStore {
   continueFromCurrentDay: (distance: number) => void;
   resetStage: () => void;
   resetAll: () => void;
+  goHome: () => void;
+  retryCurrentDay: () => void;
 }
 
 export const useStageStore = create<StageStore>()(
@@ -34,10 +36,11 @@ export const useStageStore = create<StageStore>()(
         return {
           currentDay: state.currentDay + 1,
           stageBaseDistance: state.stageBaseDistance + 200,
-          difficultyMultiplier: state.difficultyMultiplier * 1.2,
+          difficultyMultiplier: 1.0 + (state.totalCompletedDays + 1) * 0.05,
           totalCompletedDays: nextTotalDays,
           loopCount: crossedLoopBoundary ? state.loopCount + 1 : state.loopCount,
           continueDistance: 0,
+          usedContinue: false,
         };
       }),
 
@@ -47,6 +50,18 @@ export const useStageStore = create<StageStore>()(
         currentDay: 1,
         stageBaseDistance: 0,
         difficultyMultiplier: 1.0,
+        usedContinue: false,
+        continueDistance: 0,
+        totalCompletedDays: 0,
+        loopCount: 0,
+      }),
+
+      goHome: () => set({
+        usedContinue: false,
+        continueDistance: 0,
+      }),
+
+      retryCurrentDay: () => set({
         usedContinue: false,
         continueDistance: 0,
       }),

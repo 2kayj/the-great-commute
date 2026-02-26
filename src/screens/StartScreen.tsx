@@ -34,13 +34,15 @@ const FADE_DURATION = 1.0;
 const PREVIEW_SPEED = 80;
 
 export const StartScreen: React.FC = () => {
-  const { setPhase }     = useGameStore();
-  const { bestDistance } = useRecordStore();
-  const { loopCount }    = useStageStore();
+  const { setPhase }                          = useGameStore();
+  const { bestDistance }                      = useRecordStore();
+  const { loopCount, currentDay, resetStage } = useStageStore();
 
-  const canvasRef   = useRef<HTMLCanvasElement>(null);
-  const sceneBoxRef = useRef<HTMLDivElement>(null);
-  const rafRef      = useRef<number>(0);
+  const isResuming = currentDay > 1;
+
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rafRef       = useRef<number>(0);
 
   // Character renderer — warmed up so Verlet chains are already settled
   const charRef = useRef((() => {
@@ -63,26 +65,26 @@ export const StartScreen: React.FC = () => {
   const fadeProgressRef = useRef(1);  // 0 = full crossfade in progress, 1 = solid
 
   useEffect(() => {
-    const canvas   = canvasRef.current;
-    const sceneBox = sceneBoxRef.current;
-    if (!canvas || !sceneBox) return;
+    const canvas    = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
 
     const dpr = window.devicePixelRatio || 1;
 
     // Apply initial theme
     bgRef.current.setTheme(THEME_CYCLE[0]!);
 
-    // Size the canvas to fill the scene box, then scale the draw context
+    // Size the canvas to fill the container (root div), then scale the draw context
     // so all renderer coordinates (0…CANVAS_WIDTH × 0…CANVAS_HEIGHT) map
-    // proportionally into the box — keeping GROUND_Y and CANVAS_HEIGHT valid.
+    // proportionally into the container — keeping GROUND_Y and CANVAS_HEIGHT valid.
     const applySize = () => {
-      const boxW = sceneBox.clientWidth;
-      const boxH = sceneBox.clientHeight;
+      const screenW = container.clientWidth;
+      const screenH = container.clientHeight;
 
-      canvas.width  = boxW * dpr;
-      canvas.height = boxH * dpr;
-      canvas.style.width  = `${boxW}px`;
-      canvas.style.height = `${boxH}px`;
+      canvas.width  = screenW * dpr;
+      canvas.height = screenH * dpr;
+      canvas.style.width  = `${screenW}px`;
+      canvas.style.height = `${screenH}px`;
     };
 
     applySize();
@@ -90,7 +92,7 @@ export const StartScreen: React.FC = () => {
     const resizeObserver = new ResizeObserver(() => {
       applySize();
     });
-    resizeObserver.observe(sceneBox);
+    resizeObserver.observe(container);
 
     const loop = (timestamp: number) => {
       const dt = Math.min((timestamp - (lastTimeRef.current || timestamp)) / 1000, 0.05);
@@ -150,16 +152,16 @@ export const StartScreen: React.FC = () => {
         return;
       }
 
-      const boxW = sceneBox.clientWidth;
-      const boxH = sceneBox.clientHeight;
+      const screenW = container.clientWidth;
+      const screenH = container.clientHeight;
 
       ctx.save();
-      ctx.clearRect(0, 0, boxW * dpr, boxH * dpr);
+      ctx.clearRect(0, 0, screenW * dpr, screenH * dpr);
 
       // Uniform scale (no distortion). Show the bottom portion of the
       // 390×844 scene so the ground + character are visible with sky above.
       ctx.scale(dpr, dpr);
-      const offsetY = Math.max(0, GROUND_Y - boxH * 0.85);
+      const offsetY = Math.max(0, GROUND_Y - screenH * 0.65);
       ctx.translate(0, -offsetY);
 
       // Render current theme at full opacity
@@ -191,7 +193,11 @@ export const StartScreen: React.FC = () => {
   }, []);
 
   return (
-    <div className="start-screen">
+    <div className="start-screen" ref={containerRef}>
+      {/* Full-screen background canvas */}
+      <canvas ref={canvasRef} className="start-bg-canvas" />
+
+      {/* Foreground UI overlay */}
       <div className="start-ui">
 
         {/* Title */}
@@ -204,10 +210,8 @@ export const StartScreen: React.FC = () => {
           <div className="game-english-title">The Great Commute</div>
         </div>
 
-        {/* Scene box — animated background + walking character, contained */}
-        <div className="start-scene-box" ref={sceneBoxRef}>
-          <canvas ref={canvasRef} className="start-bg-canvas" />
-        </div>
+        {/* Spacer — pushes bottom-area down */}
+        <div className="start-middle" />
 
         {/* Bottom UI */}
         <div className="bottom-area">
@@ -241,9 +245,21 @@ export const StartScreen: React.FC = () => {
             </div>
           )}
 
+          {isResuming && (
+            <div className="resume-indicator">
+              Day {currentDay}부터 이어서
+            </div>
+          )}
+
           <button className="btn-start" onClick={() => setPhase('countdown')}>
-            시작하기!
+            {isResuming ? '이어서 출근!' : '시작하기!'}
           </button>
+
+          {isResuming && (
+            <button className="btn-reset-link" onClick={() => resetStage()}>
+              처음부터 다시 시작하기
+            </button>
+          )}
         </div>
 
       </div>

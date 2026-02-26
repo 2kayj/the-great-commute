@@ -71,6 +71,7 @@ export class InputManager {
     element.addEventListener('pointerdown', this.handlePointerDown);
     element.addEventListener('pointerup', this.handlePointerUp);
     element.addEventListener('pointercancel', this.handlePointerUp);
+    element.addEventListener('pointerleave', this.handlePointerUp);
     element.addEventListener('pointermove', this.handlePointerMove);
     window.addEventListener('keydown', this.handleKeyDown);
     window.addEventListener('keyup', this.handleKeyUp);
@@ -81,6 +82,7 @@ export class InputManager {
     this.element.removeEventListener('pointerdown', this.handlePointerDown);
     this.element.removeEventListener('pointerup', this.handlePointerUp);
     this.element.removeEventListener('pointercancel', this.handlePointerUp);
+    this.element.removeEventListener('pointerleave', this.handlePointerUp);
     this.element.removeEventListener('pointermove', this.handlePointerMove);
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('keyup', this.handleKeyUp);

@@ -500,6 +500,7 @@ export const GameScreen: React.FC = () => {
 
     // Setup for current stage
     const stageState = useStageStore.getState();
+    physics.setStageBaseDistance(stageState.stageBaseDistance);
     if (stageState.usedContinue && stageState.continueDistance > 0) {
       // Continue from the exact distance where the player died
       physics.resetForContinue(stageState.continueDistance, stageState.difficultyMultiplier);
@@ -643,6 +644,7 @@ export const GameScreen: React.FC = () => {
 
           const newStageState = useStageStore.getState();
           physics.setStageMultiplier(newStageState.difficultyMultiplier);
+          physics.setStageBaseDistance(newStageState.stageBaseDistance);
           followerManager.setupForStage(newStageState.stageBaseDistance, newStageState.currentDay, newStageState.totalCompletedDays);
 
           // Switch background theme if the world changed

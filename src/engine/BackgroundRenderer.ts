@@ -413,16 +413,20 @@ export class BackgroundRenderer {
     ctx.closePath();
     ctx.fill();
 
-    // Sidewalk cracks / lines
+    // Sidewalk cracks / lines (deterministic offset based on crack x position)
     ctx.strokeStyle = 'rgba(0,0,0,0.2)';
     ctx.lineWidth = 1.5;
     const crackSpacing = 40;
     const crackOffset = scrollX % crackSpacing;
     for (let x = -crackOffset; x < CANVAS_WIDTH; x += crackSpacing) {
       const bump = Math.sin((x + scrollX) * 0.05) * 3;
+      // Use stable hash from world-space x coordinate instead of Math.random()
+      const worldX = Math.round((x + scrollX) / crackSpacing);
+      const hash = Math.sin(worldX * 127.1 + 311.7) * 43758.5453;
+      const crackEndOffset = (hash - Math.floor(hash) - 0.5) * 4;
       ctx.beginPath();
       ctx.moveTo(x, GROUND_Y + bump);
-      ctx.lineTo(x + (Math.random() - 0.5) * 4, GROUND_Y + 18 + bump);
+      ctx.lineTo(x + crackEndOffset, GROUND_Y + 18 + bump);
       ctx.stroke();
     }
   }
