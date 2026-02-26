@@ -40,7 +40,8 @@
   color: #222;
   line-height: 1.25;
   letter-spacing: -1px;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(255, 255, 255, 0.7);
+  -webkit-text-stroke: 2px white;
+  paint-order: stroke fill;
 }
 
 .underline-hand {

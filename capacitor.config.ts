@@ -14,6 +14,8 @@ const config: CapacitorConfig = {
       backgroundColor: '#FFE14D',
       showSpinner: false,
       androidScaleType: 'CENTER_CROP',
+      layoutName: 'activity_splash',
+      usingDialog: true,
     },
   },
 };
