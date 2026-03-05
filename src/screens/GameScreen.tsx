@@ -15,7 +15,7 @@ import { StageTransitionOverlay } from './StageTransitionOverlay';
 import { PromotionScreen } from './PromotionScreen';
 import { CutsceneScreen } from './CutsceneScreen';
 import type { CutsceneType } from './CutsceneScreen';
-import { getRankForDays, RANK_TABLE, LOOP_CYCLE_DAYS } from '../data/rankTable';
+import { getRankForDays, RANK_TABLE, TOTAL_STAGES, getCumulativeDistance } from '../data/rankTable';
 import { getThemeForDays } from '../engine/themes';
 import type { BackgroundTheme } from '../engine/themes';
 import type { RankDef, EventType } from '../types/rank.types';
@@ -70,149 +70,78 @@ function getRankGroup(rankId: string): RankGroup {
   }
 }
 
+// Keys are percentage milestones: 20, 40, 60, 80 (= 20%, 40%, 60%, 80% of stage distance)
+// 100 is reserved for the stage-clear animation, so we only need up to 80.
 const GROUP_SPEECHES: Record<RankGroup, Record<number, string>> = {
   // ===== 회사 - 말단 (신입/대리/과장) =====
   'company-junior': {
-    10:  '오늘도 출근이다',
-    20:  '커피가 나보다 안정적이다',
-    30:  '이 커피 한 잔의 무게...',
-    40:  '오늘 점심 뭐 먹지',
-    50:  '반쯤 왔다 아마',
-    60:  '바람이 분다',
-    70:  '월급날까지 며칠이지',
-    80:  '걷다 보면 도착하겠지',
-    90:  '회사 보이려나',
-    100: '100m 돌파!!',
-    120: '구두가 새 거긴 한데',
-    150: '거의 다 왔다!!',
+    20: '커피가 나보다 안정적이다',
+    40: '오늘 점심 뭐 먹지',
+    60: '월급날까지 며칠이지',
+    80: '회사 보이려나',
   },
   // ===== 회사 - 관리직 (팀장/부장) =====
   'company-manager': {
-    10:  '오늘 회의 몇 개지',
-    20:  '커피가 두 잔째다',
-    30:  '결재 서류 떠오른다',
-    40:  '넥타이가 비뚤어진 것 같다',
-    50:  '이 길도 꽤 걸었다',
-    60:  '하늘이 높다',
-    70:  '점심은 냉면으로',
-    80:  '구두 굽이 닳았나',
-    90:  '사무실 자리 정리해뒀나',
-    100: '100m 돌파!!',
-    120: '회의실 자리 남았으려나',
-    150: '거의 다 왔다!!',
+    20: '커피가 두 잔째다',
+    40: '넥타이가 비뚤어진 것 같다',
+    60: '점심은 냉면으로',
+    80: '회의실 자리 남았으려나',
   },
-  // ===== 회사 - 임원 (상무/사장) =====
+  // ===== 회사 - 임원 (상무) =====
   'company-exec': {
-    10:  '출근은 루틴이다',
-    20:  '주가는 안 봤다',
-    30:  '커피 온도가 딱 좋다',
-    40:  '오늘 일정이 뭐였더라',
-    50:  '이 길이 좀 익숙해졌다',
-    60:  '구름이 낮다',
-    70:  '점심은 누가 사주려나',
-    80:  '뒷산이 보인다',
-    90:  '오늘 골프 약속이었나',
-    100: '100m 돌파!!',
-    120: '양복에 먼지가 앉았다',
-    150: '거의 다 왔다!!',
+    20: '주가는 안 봤다',
+    40: '오늘 일정이 뭐였더라',
+    60: '점심은 누가 사주려나',
+    80: '오늘 골프 약속이었나',
   },
   // ===== 정치 - 재벌 (회장/총수) =====
   'politics-chaebol': {
-    10:  '오늘도 본사 간다',
-    20:  '커피를 비서가 안 들었다',
-    30:  '직접 들고 있다 이걸',
-    40:  '바람이 양복을 스친다',
-    50:  '반은 온 것 같다',
-    60:  '오늘 뉴스는 뭘까',
-    70:  '점심은 한정식으로',
-    80:  '본사가 보이려나',
-    100: '100m 돌파!!',
-    120: '운전기사 어디 간 거지',
-    150: '거의 다 왔다!!',
+    20: '커피를 비서가 안 들었다',
+    40: '바람이 양복을 스친다',
+    60: '점심은 한정식으로',
+    80: '운전기사 어디 간 거지',
   },
   // ===== 정치 - 정치인 (국회의원/대통령) =====
   'politics-politician': {
-    10:  '오늘도 국회 간다',
-    20:  '커피가 흔들린다 국정처럼',
-    30:  '연설문 외웠나 모르겠다',
-    40:  '오늘 날씨가 좋긴 하다',
-    50:  '반쯤 왔다 아마도',
-    60:  '수행원이 안 보인다',
-    70:  '점심은 국밥이 좋겠다',
-    80:  '국회 돔이 보이려나',
-    100: '100m 돌파!!',
-    120: '카메라 없는 길이라 다행',
-    150: '거의 다 왔다!!',
+    20: '커피가 흔들린다 국정처럼',
+    40: '연설문 외웠나 모르겠다',
+    60: '점심은 국밥이 좋겠다',
+    80: '카메라 없는 길이라 다행',
   },
   // ===== 이세계 - 초보 (신입용사/기사) =====
   'isekai-beginner': {
-    10:  '여긴 어디지',
-    20:  '이 물약 떨어뜨리면 안 된다',
-    30:  '풀숲에서 소리가 난다',
-    40:  '하늘이 두 개다',
-    50:  '길은 맞는 건가',
-    60:  '나무가 말을 한 것 같은데',
-    70:  '점심은 뭘 먹는 거지 여기선',
-    80:  '성벽이 보이려나',
-    100: '100m 돌파!!',
-    120: '슬라임이 지나갔다 아마',
-    150: '거의 다 왔다!!',
+    20: '이 물약 떨어뜨리면 안 된다',
+    40: '하늘이 두 개다',
+    60: '나무가 말을 한 것 같은데',
+    80: '슬라임이 지나갔다 아마',
   },
-  // ===== 이세계 - 실력자 (마법사/영웅) =====
+  // ===== 이세계 - 실력자 (마법사/현자/영웅) =====
   'isekai-skilled': {
-    10:  '오늘도 퀘스트다',
-    20:  '물약이 흔들린다',
-    30:  '마나가 아침엔 좀 낮다',
-    40:  '저 산 너머가 목적지겠지',
-    50:  '반은 왔다 아마',
-    60:  '오늘은 바람마법 필요 없다',
-    70:  '점심은 포션으로 때우나',
-    80:  '파티원이 늦잠인가',
-    100: '100m 돌파!!',
-    120: '장비 내구도 괜찮겠지',
-    150: '거의 다 왔다!!',
+    20: '물약이 흔들린다',
+    40: '저 산 너머가 목적지겠지',
+    60: '오늘은 바람마법 필요 없다',
+    80: '파티원이 늦잠인가',
   },
   // ===== 이세계 - 최강 (마왕/신) =====
   'isekai-boss': {
-    10:  '{rankName}도 출근한다',
-    20:  '부하가 만든 커피다',
-    30:  '만렙인데 체력은 1이다',
-    40:  '{enemy}가 올 시간은 아니겠지',
-    50:  '반은 걸었다',
-    60:  '하늘이 어둡다 원래 그렇다',
-    70:  '점심은 부하가 차렸겠지',
-    80:  '{building} 보이려나',
-    100: '100m 돌파!!',
-    120: '왕좌가 그립긴 한데',
-    150: '거의 다 왔다!!',
+    20: '부하가 만든 커피다',
+    40: '{enemy}가 올 시간은 아니겠지',
+    60: '하늘이 어둡다 원래 그렇다',
+    80: '{building} 보이려나',
   },
   // ===== 우주 - 초보 (신입우주인/달탐험가) =====
   'space-rookie': {
-    10:  '우주에도 출근이 있다',
-    20:  '이 커피 무중력에서 마시는 법',
-    30:  '헬멧 안이 좀 답답하다',
-    40:  '별이 많다',
-    50:  '반은 걸은 건가',
-    60:  '발밑이 좀 이상하다',
-    70:  '점심은 튜브식이겠지',
-    80:  '기지가 보이려나',
-    100: '100m 돌파!!',
-    120: '지구가 작게 보인다',
-    150: '거의 다 왔다!!',
+    20: '이 커피 무중력에서 마시는 법',
+    40: '별이 많다',
+    60: '발밑이 좀 이상하다',
+    80: '지구가 작게 보인다',
   },
   // ===== 우주 - 베테랑 (화성~천왕성) =====
   'space-veteran': {
-    10:  '오늘도 탐사다',
-    20:  '이 행성 중력은 좀 다르다',
-    30:  '깃발 하나 더 꽂으러 간다',
-    40:  '지평선이 휘어져 있다',
-    50:  '반은 왔다',
-    60:  '교신 상태 양호',
-    70:  '점심은 3번 튜브로',
-    80:  '기지 불빛이 보이려나',
-    100: '100m 돌파!!',
-    120: '지구는 이제 점이다',
-    150: '거의 다 왔다!!',
+    20: '이 행성 중력은 좀 다르다',
+    40: '지평선이 휘어져 있다',
+    60: '교신 상태 양호',
+    80: '지구는 이제 점이다',
   },
 };
 
@@ -271,7 +200,7 @@ export const GameScreen: React.FC = () => {
   bestDistRef.current = bestDistance;
 
   // Item store
-  const { coffeeCount, consumeCoffee } = useItemStore();
+  const { coffeeCount, consumeCoffee, addCoffee } = useItemStore();
   const coffeeCountRef    = useRef(coffeeCount);
   coffeeCountRef.current  = coffeeCount;
   const consumeCoffeeRef  = useRef(consumeCoffee);
@@ -281,6 +210,9 @@ export const GameScreen: React.FC = () => {
   const { currentDay, stageBaseDistance, difficultyMultiplier, advanceStage, resetStage, totalCompletedDays, loopCount } = useStageStore();
   const stageBaseDistRef = useRef(stageBaseDistance);
   stageBaseDistRef.current = stageBaseDistance;
+  // Derived from rankTable — target distance for the current stage
+  const stageTargetDistRef = useRef(getRankForDays(totalCompletedDays).targetDistance);
+  stageTargetDistRef.current = getRankForDays(totalCompletedDays).targetDistance;
   const currentDayRef = useRef(currentDay);
   currentDayRef.current = currentDay;
   const diffMultRef = useRef(difficultyMultiplier);
@@ -414,7 +346,7 @@ export const GameScreen: React.FC = () => {
     }
 
     if (dayLabelRef.current) {
-      dayLabelRef.current.textContent = `Day ${currentDayRef.current}`;
+      dayLabelRef.current.textContent = `Stage ${currentDayRef.current}`;
     }
 
     if (dangerOverlayRef.current) {
@@ -453,10 +385,13 @@ export const GameScreen: React.FC = () => {
       }
     }
 
-    // Speech bubble milestone check (스테이지 내 상대 거리 기준)
+    // Speech bubble milestone check (스테이지 진행률 % 기준: 20/40/60/80%)
     const stageDistance = distance - stageBaseDistRef.current;
-    const milestone = Math.floor(stageDistance / 10) * 10;
-    if (milestone > 0 && milestone !== lastMilestoneRef.current) {
+    const targetDist = stageTargetDistRef.current;
+    const progress = targetDist > 0 ? stageDistance / targetDist : 0;
+    // Map progress to milestone bucket: 0%~20% → 0, 20%~40% → 20, 40%~60% → 40, ...
+    const milestone = Math.floor(progress * 5) * 20;
+    if (milestone > 0 && milestone <= 80 && milestone !== lastMilestoneRef.current) {
       lastMilestoneRef.current = milestone;
       const currentRank = getRankForDays(useStageStore.getState().totalCompletedDays);
       const group = getRankGroup(currentRank.id);
@@ -518,24 +453,26 @@ export const GameScreen: React.FC = () => {
     const isDebug = debugParams.has('debug');
     if (isDebug) physics.setInvincible(true);
 
-    // Debug: jump to specific day via ?startDay=N
+    // Debug: jump to specific stage via ?startDay=N (N = totalCompletedDays)
     const startDayParam = debugParams.get('startDay');
     if (startDayParam && !stageState.usedContinue) {
       const targetDays = parseInt(startDayParam, 10);
       if (targetDays > 0) {
-        const baseDist = targetDays * 200;
+        const jumpStageIndex = targetDays % TOTAL_STAGES;
+        const baseDist = getCumulativeDistance(jumpStageIndex);
+        const jumpRank = getRankForDays(targetDays);
         useStageStore.setState({
           totalCompletedDays: targetDays,
-          currentDay: targetDays + 1,
+          currentDay: jumpStageIndex + 1,
           stageBaseDistance: baseDist,
-          difficultyMultiplier: 1.0,
+          difficultyMultiplier: jumpRank.speedMultiplier,
         });
         // Sync refs immediately so game loop sees correct values
         stageBaseDistRef.current = baseDist;
-        currentDayRef.current = targetDays + 1;
-        diffMultRef.current = 1.0;
+        currentDayRef.current = jumpStageIndex + 1;
+        diffMultRef.current = jumpRank.speedMultiplier;
         physics.reset();
-        physics.resetForContinue(baseDist, 1.0);
+        physics.resetForContinue(baseDist, jumpRank.speedMultiplier);
       }
     }
 
@@ -554,18 +491,24 @@ export const GameScreen: React.FC = () => {
     character.setWorld(initialRankDef.world);
     character.setRankId(initialRankDef.id);
 
-    // Setup EventManager for current rank progression
+    // Setup EventManager for current rank progression (unlock all events for stages up to and including current)
     eventManager.reset();
     const unlockedEvents: EventType[] = [];
     for (const rank of RANK_TABLE) {
-      if (rank.cumulativeDays > initialRankDef.cumulativeDays) break;
+      if (rank.stageIndex > initialRankDef.stageIndex) break;
       if (rank.unlocksEvent) unlockedEvents.push(rank.unlocksEvent);
     }
     eventManager.setUnlockedEvents(unlockedEvents);
     eventManager.setIntensityMultiplier(Math.pow(1.5, effectiveState.loopCount));
 
+    // Configure terrain segments for the current stage
+    physics.setTerrainSegments(initialRankDef.segments);
+
     followerManager.setupForStage(effectiveState.stageBaseDistance, effectiveState.currentDay, effectiveState.totalCompletedDays);
     stageClearedRef.current = false;
+
+    // 출근 시 커피 1잔 무료 지급
+    useItemStore.getState().addCoffee(1);
 
     if (containerRef.current) {
       input.attach(containerRef.current, (state) => {
@@ -647,6 +590,9 @@ export const GameScreen: React.FC = () => {
           physics.setStageBaseDistance(newStageState.stageBaseDistance);
           followerManager.setupForStage(newStageState.stageBaseDistance, newStageState.currentDay, newStageState.totalCompletedDays);
 
+          // 다음 출근 시 커피 1잔 무료 지급
+          useItemStore.getState().addCoffee(1);
+
           // Switch background theme if the world changed
           const newTheme = getThemeForDays(newStageState.totalCompletedDays);
           if (currentThemeRef.current !== newTheme) {
@@ -660,6 +606,9 @@ export const GameScreen: React.FC = () => {
           character.setWorld(rankAfter.world);
           character.setRankId(rankAfter.id);
 
+          // Configure terrain for the new stage
+          physics.setTerrainSegments(rankAfter.segments);
+
           // Update rank-based speed multiplier and damping penalty after advancing
           const newEffectiveSpeedMult = rankAfter.speedMultiplier * (1 + newStageState.loopCount * 0.1);
           physics.setSpeedMultiplier(newEffectiveSpeedMult);
@@ -667,7 +616,7 @@ export const GameScreen: React.FC = () => {
           physics.setRankDampingPenalty(newDampingPenalty);
 
           // Detect world transitions — these trigger a cutscene before promotion
-          const crossedLoop = newStageState.totalCompletedDays % LOOP_CYCLE_DAYS === 0;
+          const crossedLoop = newStageState.totalCompletedDays % TOTAL_STAGES === 0;
           let cutsceneType: CutsceneType | null = null;
 
           if (crossedLoop) {
@@ -696,13 +645,16 @@ export const GameScreen: React.FC = () => {
 
       const dir = directionRef.current;
 
+      // Inform EventManager of current terrain type (bumpy = short bumps, ice = no slope)
+      eventManager.setTerrainState(physics.isBumpyTerrain(), physics.isIceTerrain());
+
       // Apply event modifiers before physics update
       const eventFrame = eventManager.update(deltaTime, physics.getState().distance);
       physics.setEventFrame(eventFrame);
 
-      // Coffee auto-activation: 위험 상태 + 쉴드 미활성 + 커피 보유 시 자동 발동
+      // Coffee auto-activation: 낙사 직전(54°) + 쉴드 미활성 + 커피 보유 시 자동 발동
       if (
-        physics.isDangerous() &&
+        physics.isNearDeath() &&
         !physics.isCoffeeShieldActive() &&
         coffeeCountRef.current > 0
       ) {
@@ -735,8 +687,9 @@ export const GameScreen: React.FC = () => {
 
       followerManager.update(deltaTime, state);
 
-      // Stage clear detection: 200m per stage
-      const nextStageDist = stageBaseDistRef.current + 200;
+      // Stage clear detection: use targetDistance from current rank config
+      const currentRankConfig = getRankForDays(useStageStore.getState().totalCompletedDays);
+      const nextStageDist = stageBaseDistRef.current + currentRankConfig.targetDistance;
       if (state.distance >= nextStageDist && !stageClearedRef.current && !state.isGameOver) {
         stageClearedRef.current = true;
         // Start entering-building animation instead of jumping straight to transition
@@ -864,7 +817,7 @@ export const GameScreen: React.FC = () => {
       {/* HUD Top */}
       <div className="hud-top">
         <div className="hud-distance">
-          <span className="hud-day" ref={dayLabelRef}>Day {currentDay}</span>
+          <span className="hud-day" ref={dayLabelRef}>Stage {currentDay}</span>
           <span className="hud-separator">|</span>
           <span className="distance-num" ref={distanceTopRef}>0</span>
           <span className="distance-unit">m</span>

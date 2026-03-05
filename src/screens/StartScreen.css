@@ -111,8 +111,25 @@
   margin-left: 2px;
 }
 
-.record-crown {
-  font-size: 22px;
+.record-trophy-btn {
+  background: none;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.record-trophy-btn:active {
+  background: rgba(255, 215, 0, 0.2);
+}
+.trophy-label {
+  font-size: 10px;
+  color: #999;
+  letter-spacing: 0.5px;
 }
 
 /* ── Tip box ── */

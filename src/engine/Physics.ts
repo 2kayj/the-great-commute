@@ -10,7 +10,9 @@ import {
 } from '../utils/constants';
 import { clamp } from '../utils/math';
 import { DifficultyManager } from './DifficultyManager';
+import { TerrainManager } from './TerrainManager';
 import type { EventFrame } from './EventManager';
+import type { TerrainSegment } from '../types/terrain.types';
 
 export interface PhysicsState {
   angle: number;
@@ -26,6 +28,7 @@ export class Physics {
   private state: PhysicsState;
   private accumulator: number = 0;
   private difficultyManager: DifficultyManager = new DifficultyManager();
+  private terrainManager: TerrainManager = new TerrainManager();
   private stageMultiplier: number = 1.0;
   private speedMultiplier: number = 1.0;
   private stageBaseDistance: number = 0;
@@ -102,6 +105,11 @@ export class Physics {
     this.eventFrame = { ...frame };
   }
 
+  /** Configure terrain segments for the current stage. */
+  setTerrainSegments(segments: TerrainSegment[]): void {
+    this.terrainManager.setSegments(segments);
+  }
+
   resetForContinue(stageBaseDistance: number, stageMultiplier: number): void {
     this.state = {
       angle: 0,
@@ -166,16 +174,29 @@ export class Physics {
       this.state.elapsedTime
     );
 
+    // Terrain params for this exact distance
+    const terrain = this.terrainManager.update(relativeDistance);
+
+    // Slope offset: event slope + terrain slope combined
+    const effectiveSlopeOffset = this.eventFrame.slopeOffset + terrain.slopeOffset;
+
     // Slope event shifts the neutral/balance point
-    const effectiveAngle = angle - this.eventFrame.slopeOffset;
+    const effectiveAngle = angle - effectiveSlopeOffset;
 
-    // Torque from gravity (pendulum-like), scaled by difficulty
-    const gravityTorque = GRAVITY * diffConfig.gravityMultiplier * this.stageMultiplier * Math.sin(effectiveAngle);
+    // Torque from gravity: diffConfig * terrain * stageMultiplier
+    const gravityTorque = GRAVITY
+      * diffConfig.gravityMultiplier
+      * terrain.gravityMult
+      * this.stageMultiplier
+      * Math.sin(effectiveAngle);
 
-    // Torque from player input
-    const inputTorque = INPUT_FORCE * this.stageMultiplier * inputDirection;
+    // Torque from player input: terrain inputMult reduces effectiveness on ice
+    const inputTorque = INPUT_FORCE * this.stageMultiplier * inputDirection * terrain.inputMult;
 
-    const effectiveDamping = ANGULAR_DAMPING * diffConfig.angularDampingMultiplier;
+    // Angular damping: diffConfig * terrain
+    const effectiveDamping = ANGULAR_DAMPING
+      * diffConfig.angularDampingMultiplier
+      * terrain.dampingMult;
 
     this.state.angularVelocity += (gravityTorque + inputTorque + this.eventFrame.windTorque) * dt;
     this.state.angularVelocity *= effectiveDamping;
@@ -217,13 +238,11 @@ export class Physics {
       MAX_SPEED * this.speedMultiplier * coffeeBoost
     );
 
-    // Distance (meters, 1 meter = some pixels, scaled)
-    this.state.distance += (this.state.speed / 100) * dt;
+    // Distance (meters) — terrain speedMult scales travel rate
+    this.state.distance += (this.state.speed / 100) * dt * terrain.speedMult;
     this.state.elapsedTime += dt;
 
     // Walk phase (oscillator driven by speed)
-    // Divisor raised from 80 → 128 to slow the walk cycle,
-    // giving the Verlet leg chain more time to swing at the tip.
     const cycleFreq = this.state.speed / 80;
     this.state.walkPhase += cycleFreq * dt * Math.PI * 2;
   }
@@ -238,5 +257,23 @@ export class Physics {
 
   isDangerous(): boolean {
     return Math.abs(this.state.angle) > MAX_ANGLE * 0.65;
+  }
+
+  /** 낙사 직전 상태 (MAX_ANGLE의 90%) — 커피 자동 발동 기준 */
+  isNearDeath(): boolean {
+    return Math.abs(this.state.angle) > MAX_ANGLE * 0.90;
+  }
+
+  /** Expose current terrain type for external systems (EventManager, BackgroundRenderer). */
+  getCurrentTerrainType(): string {
+    return this.terrainManager.getCurrentType();
+  }
+
+  isBumpyTerrain(): boolean {
+    return this.terrainManager.isBumpy();
+  }
+
+  isIceTerrain(): boolean {
+    return this.terrainManager.isIce();
   }
 }

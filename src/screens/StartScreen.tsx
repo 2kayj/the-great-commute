@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useRecordStore } from '../store/recordStore';
 import { useStageStore } from '../store/stageStore';
+import { getRankForDays } from '../data/rankTable';
 import { CharacterRenderer } from '../engine/CharacterRenderer';
 import { BackgroundRenderer } from '../engine/BackgroundRenderer';
 import {
@@ -15,6 +16,7 @@ import {
   makeSpaceTheme,
 } from '../engine/themes';
 import type { BackgroundTheme } from '../engine/themes';
+import platform from '../platform';
 import './StartScreen.css';
 
 // Theme cycle: company → politics → isekai → space → loop
@@ -36,9 +38,10 @@ const PREVIEW_SPEED = 80;
 export const StartScreen: React.FC = () => {
   const { setPhase }                          = useGameStore();
   const { bestDistance }                      = useRecordStore();
-  const { loopCount, currentDay, resetStage } = useStageStore();
+  const { loopCount, currentDay, totalCompletedDays, resetStage } = useStageStore();
 
   const isResuming = currentDay > 1;
+  const currentRank = getRankForDays(totalCompletedDays);
 
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -217,18 +220,29 @@ export const StartScreen: React.FC = () => {
         <div className="bottom-area">
           <div className="record-box">
             <div>
-              <div className="record-label">최고 기록</div>
+              <div className="record-label">내 최고 기록</div>
               <div>
                 <span className="record-value">{bestDistance}</span>
                 <span className="record-unit">m</span>
               </div>
             </div>
-            <div className="record-crown">
-              <svg width="28" height="24" viewBox="0 0 28 24" fill="none">
-                <path d="M 2,20 L 4,10 L 9,16 L 14,6 L 19,16 L 24,10 L 26,20 Z"
-                      fill="#FFD700" stroke="#222" strokeWidth="1.5" strokeLinejoin="round"/>
+            <button
+              className="record-trophy-btn"
+              onClick={() => {
+                platform.openLeaderboard?.().catch((e) => {
+                  console.warn('[start] 리더보드 열기 실패:', e);
+                });
+              }}
+              aria-label="리더보드"
+            >
+              <span className="trophy-label">리더보드</span>
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <path d="M7 4h14v2h3v6c0 2-1.5 3-3 3h-1c-.5 2-2 3.5-4 4v3h4v2H8v-2h4v-3c-2-.5-3.5-2-4-4H7c-1.5 0-3-1-3-3V6h3V4z"
+                      fill="#FFD700" stroke="#222" strokeWidth="1.2" strokeLinejoin="round"/>
+                <rect x="6" y="6" width="2" height="4" rx="0.5" fill="#FFC107" opacity="0.6"/>
+                <rect x="20" y="6" width="2" height="4" rx="0.5" fill="#FFC107" opacity="0.6"/>
               </svg>
-            </div>
+            </button>
           </div>
 
           <div className="tip-box">
@@ -247,7 +261,7 @@ export const StartScreen: React.FC = () => {
 
           {isResuming && (
             <div className="resume-indicator">
-              Day {currentDay}부터 이어서
+              {currentRank.name}부터 이어서
             </div>
           )}
 
